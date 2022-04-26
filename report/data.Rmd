@@ -1,0 +1,96 @@
+## Data
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+source(here::here("scripts/setup.R"))
+```
+
+## Read all tables for analysis
+
+```{r echo=FALSE, message=FALSE}
+
+aisles <- read.csv(here::here("data/aisles.csv"), header = TRUE)
+departments <- read.csv(here::here("data/departments.csv"), header = TRUE)
+order_prod <- read.csv(here::here("data/order_products__prior.csv"), header = TRUE)
+order_prod_tr <- read.csv(here::here("data/order_products__train.csv"), header = TRUE)
+orders <- read.csv(here::here("data/orders.csv"), header = TRUE)
+products <- read.csv(here::here("data/products.csv"), header = TRUE)
+```
+
+## Data Description
+
+`orders` (3.4m rows, 206k users):
+* `order_id`: order identifier
+* `user_id`: customer identifier
+* `eval_set`: which evaluation set this order belongs in (see `SET` described below)
+* `order_number`: the order sequence number for this user (1 = first, n = nth)
+* `order_dow`: the day of the week the order was placed on
+* `order_hour_of_day`: the hour of the day the order was placed on
+* `days_since_prior`: days since the last order, capped at 30 (with NAs for `order_number` = 1)
+
+`products` (50k rows):
+* `product_id`: product identifier
+* `product_name`: name of the product
+* `aisle_id`: foreign key
+* `department_id`: foreign key
+
+`aisles` (134 rows):
+* `aisle_id`: aisle identifier
+* `aisle`: the name of the aisle
+
+`deptartments` (21 rows):
+* `department_id`: department identifier
+* `department`: the name of the department
+
+`order_products__SET` (30m+ rows):
+* `order_id`: foreign key
+* `product_id`: foreign key
+* `add_to_cart_order`: order in which each product was added to cart
+* `reordered`: 1 if this product has been ordered by this user in the past, 0 otherwise
+
+where `SET` is one of the four following evaluation sets (`eval_set` in `orders`):
+* `"prior"`: orders prior to that users most recent order (~3.2m orders)
+* `"train"`: training data supplied to participants (~131k orders)
+* `"test"`: test data reserved for machine learning competitions (~75k orders)
+
+```{r}
+orders %>% filter(eval_set == "prior") %>%
+  select(-order_id, -user_id, -order_number) %>%
+  inspect_num() %>%
+  show_plot(col_palette = 3)
+
+```
+
+
+```{r}
+# Combine order product lists to have a global panorama per customer
+global_order_prod <- rbind(order_prod, order_prod_tr)
+
+# Identify the products purchased with their departments and the time and day of consumption 
+user_purchases <- orders %>%
+  left_join(global_order_prod, by = "order_id") %>%
+  left_join(products, by = "product_id")
+
+# Divide the user_purchases between training and test sets
+
+user_purchases_tr <- user_purchases %>% filter(eval_set == "train")
+plot_intro(user_purchases_tr)
+user_purchases_ts <- user_purchases %>% filter(eval_set == "test")
+plot_intro(user_purchases_ts)
+user_purchases_pr <- user_purchases %>% filter(eval_set == "prior")
+```
+
+
+```{r}
+library(caret)
+mod.knn <- knn3(data=user_purchases_pr, product_id ~ order_id + user_id, k=2) ## build the K-NN model
+predict(mod.knn, newdata = user_purchases_pr, type="class")
+
+
+mod.knn <- knn3(data=user_purchases_tr, product_id ~ order_id + user_id, k=2)
+iris.te.pred <- predict(mod.knn, newdata = , type="class")
+```
+
+
+
+
+
