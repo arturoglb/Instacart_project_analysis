@@ -8,9 +8,9 @@ packages <- c(
   "tidyverse", "lubridate", "car", "tidyquant", # for wrangling
   "ggrepel", "gghighlight", "patchwork", "maps", "scales", "rworldmap", "RColorBrewer",
   "cowplot", "plotly", "dygraphs", "xts", "highcharter", "ggthemes", "corrplot",
-  "GGally", "ggcorrplot", "DataExplorer", "inspectdf", # for plotting
+  "GGally", "ggcorrplot", "DataExplorer", "inspectdf", "factoextra", # for plotting
   "knitr", "kableExtra", "bookdown", "rmarkdown", "bslib",  # for the report
-  "olsrr", "psych", "stargazer", "DT", "Hmisc", "psych"  # for the analysis
+  "olsrr", "psych", "stargazer", "DT", "Hmisc", "psych", "FactoMineR"  # for the analysis
 )
 purrr::walk(packages, library, character.only = TRUE) 
 
