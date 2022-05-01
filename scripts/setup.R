@@ -10,7 +10,9 @@ packages <- c(
   "cowplot", "plotly", "dygraphs", "xts", "highcharter", "ggthemes", "corrplot",
   "GGally", "ggcorrplot", "DataExplorer", "inspectdf", "factoextra", # for plotting
   "knitr", "kableExtra", "bookdown", "rmarkdown", "bslib",  # for the report
-  "olsrr", "psych", "stargazer", "DT", "Hmisc", "psych", "FactoMineR"  # for the analysis
+  "olsrr", "psych", "stargazer", "DT", "Hmisc", "psych", "FactoMineR", 
+  "rpart", "gmodels", "ISLR", "rpart", "rpart.plot", "adabag",
+  "caret" # for the analysis
 )
 purrr::walk(packages, library, character.only = TRUE) 
 
