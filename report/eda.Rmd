@@ -109,18 +109,6 @@ kable(order_products_train[1:50,], caption = "The order_products_train table") %
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### **Table 5 - order_products__prior**
-
-```{r echo=FALSE, message=FALSE}
-order_products_prior <- read.csv(here::here("data/order_products__prior.csv"), header = TRUE)
-
-#missing value
-sum(is.na(order_products_prior)) #0
-
-kable(order_products_prior[1:50,], caption = "The order_products_prior table") %>%
-  kable_styling(bootstrap_options = "bordered") %>%
-  kableExtra::scroll_box(width = "100%", height = "250px")
-```
 
 #### **Table 6 - order**
 
@@ -132,7 +120,7 @@ sum(is.na(orders)) #206209
 max(orders$user_id) #206209
 #meaning that data is complete
 
-orders %>% filter(eval_set == "prior" | eval_set == "train" ) %>%
+orders %>% filter(eval_set == "train" ) %>%
   select(-order_id, -user_id, -order_number) %>%
   inspect_num() %>%
   show_plot(col_palette = 3)
@@ -153,15 +141,31 @@ global_order_prod <- rbind(order_products_prior, order_products_train)
 
 # Identify the products purchased with their departments and the time and day of consumption 
 user_purchases <- orders %>%
-  left_join(global_order_prod, by = "order_id") %>%
+  filter(eval_set == "train") %>%
+  left_join(order_products_train, by = "order_id") %>%
   left_join(products, by = "product_id") %>%
   left_join(aisles, by = c("aisle_id")) %>%
-  left_join(departments, by = c("department_id"))
+  left_join(departments, by = c("department_id")) %>%
+  select(order_id, order_dow, order_hour_of_day, product_id, aisle_id,
+         department_id)
 
-# Divide the user_purchases between training and test sets
-user_purchases_tr <- user_purchases %>% filter(eval_set == "train")
-user_purchases_ts <- user_purchases %>% filter(eval_set == "test")
-user_purchases_pr <- user_purchases %>% filter(eval_set == "prior")
+products <- products %>%
+  select(product_id, aisle_id)
+orders <- orders %>%
+  filter(eval_set == "train") %>%
+  select(order_id, order_dow, order_hour_of_day)
+
+department_wide <- user_purchases %>%
+  group_by(order_id, product_id, department_id) %>%
+  summarise(product_num = n()) %>%
+  pivot_wider(names_from = "department_id", values_from = "product_num") %>%
+  left_join(orders, by = "order_id") %>%
+  left_join(products, by = "product_id") %>%
+  relocate(order_dow, .before = "product_id") %>%
+  relocate(order_hour_of_day, .before = "product_id") %>%
+  relocate(aisle_id, .after = "product_id")
+
+department_wide[is.na(department_wide)] <- 0
 
 #if(.Platform$OS.type == "windows") withAutoprint({
 #memory.size()
