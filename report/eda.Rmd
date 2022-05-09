@@ -141,21 +141,17 @@ user_purchases <- orders %>%
   select(order_id, order_dow, order_hour_of_day, product_id, aisle_id,
          department_id)
 
-products <- products %>%
-  select(product_id, aisle_id)
 orders <- orders %>%
   filter(eval_set == "train") %>%
   select(order_id, order_dow, order_hour_of_day)
 
 department_wide <- user_purchases %>%
-  group_by(order_id, product_id, department_id) %>%
+  group_by(order_id, department_id) %>%
   summarise(product_num = n()) %>%
   pivot_wider(names_from = "department_id", values_from = "product_num") %>%
   left_join(orders, by = "order_id") %>%
-  left_join(products, by = "product_id") %>%
-  relocate(order_dow, .before = "product_id") %>%
-  relocate(order_hour_of_day, .before = "product_id") %>%
-  relocate(aisle_id, .after = "product_id")
+  relocate(order_dow, .before = `4`) %>%
+  relocate(order_hour_of_day, .before = `4`)
 
 department_wide[is.na(department_wide)] <- 0
 
