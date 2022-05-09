@@ -128,9 +128,6 @@ Monday's comparing to the rest of the week, and on the last chart
 #### **Table 7 - user_purchases**
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Combine order product lists to have a global panorama per customer
-global_order_prod <- rbind(order_products_prior, order_products_train)
-
 # Identify the products purchased with their departments and the time and day of consumption 
 user_purchases <- orders %>%
   filter(eval_set == "train") %>%
@@ -139,19 +136,19 @@ user_purchases <- orders %>%
   left_join(aisles, by = c("aisle_id")) %>%
   left_join(departments, by = c("department_id")) %>%
   select(order_id, order_dow, order_hour_of_day, product_id, aisle_id,
-         department_id)
+         department)
 
 orders <- orders %>%
   filter(eval_set == "train") %>%
   select(order_id, order_dow, order_hour_of_day)
 
 department_wide <- user_purchases %>%
-  group_by(order_id, department_id) %>%
+  group_by(order_id, department) %>%
   summarise(product_num = n()) %>%
-  pivot_wider(names_from = "department_id", values_from = "product_num") %>%
+  pivot_wider(names_from = "department", values_from = "product_num") %>%
   left_join(orders, by = "order_id") %>%
-  relocate(order_dow, .before = `4`) %>%
-  relocate(order_hour_of_day, .before = `4`)
+  relocate(order_dow, .before = `canned goods`) %>%
+  relocate(order_hour_of_day, .before = `canned goods`)
 
 department_wide[is.na(department_wide)] <- 0
 
