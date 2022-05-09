@@ -1,13 +1,5 @@
----
-title: "EDA"
-author: "Manunpat"
-date: '2022-04-23'
-output: html_document
-editor_options: 
-  markdown: 
-    wrap: 72
-  chunk_output_type: console
----
+
+## EDA
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 source(here::here("scripts/setup.R"))
