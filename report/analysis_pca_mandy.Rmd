@@ -1,0 +1,192 @@
+---
+title: "analysis_pca_mandy"
+author: "Manunpat"
+date: '2022-05-12'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+objective for supervised: predict days of a week when the number of orders per department are known
+
+### **PCA**
+# 1. PCA by department
+
+http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials/
+
+We analyze the association between the numbers of orders in different departments. 
+```{r, fig.height=6, fig.width=10}
+str(department_wide)
+summary(department_wide)
+sd <- apply(department_wide[,], 2, sd)
+plot_correlation(department_wide, type= 'c', cor_args = list( 'use' = 'complete.obs'))
+
+department_wide_pca <- department_wide[,-(1:3)]
+
+pca_department <- PCA(department_wide_pca, scale.unit = FALSE)
+pca_department$eig
+pca_department$var$coord #represent coordination (points) of pca plot
+
+pca_department$var$cos2 
+```
+
+# 2. A hybrid supervised/unsupervised learning approach
+>>result is similar to solely supervised learning with both scale and non scale
+Further study
+1. hybrid with logistic regression
+2. analyze accuracy each day
+3. PCA with clustering
+
+```{r, fig.height=6, fig.width=10}
+aisle_wide_pca <- aisle_wide[,-(1:3)]
+
+pca_aisle <- PCA(aisle_wide_pca, scale.unit = FALSE)
+pca_aisle$eig
+pca_aisle$var$coord #represent coordination (points) of pca plot
+
+pca_aisle$var$cos2 #represent size of each X. For example, canned meat seafood has 0.00304 of total variance of Dim1.
+
+#not scale
+#cut off 70% = Dim 1-22
+#cut off 80% = Dim 1-35
+
+#scale
+#cut off 70% = Dim 1-86
+#cut off 80% = Dim 1-101
+
+##grouping PCA by aisle
+#classifying the variables into 21 groups using the kmeans clustering algorithm
+set.seed(12345)
+res.km <- kmeans(pca_aisle$var$coord, centers = 21, nstart = 25)
+grp <- as.factor(res.km$cluster)
+
+fviz_pca_var(pca_aisle, col.var = grp)
+
+grpdf <- as.data.frame(grp) %>% rownames_to_column("aisle")
+
+check <- products %>% 
+  left_join(aisles, by = c("aisle_id")) %>%
+  left_join(departments, by = c("department_id")) %>%
+  select(aisle, department) %>%
+  left_join(grpdf, by = c("aisle")) %>%
+  unique() %>% 
+  arrange(department)
+```
+
+Tree with new grouping by behavior
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+################# Considering days as one day ###########################
+
+dep_pca <- user_purchases %>%
+  left_join(check, by = c("aisle")) %>%
+  select(order_id, order_dow, order_hour_of_day, grp) %>%
+  group_by(order_id, grp) %>%
+  summarise(product_num = n()) %>%
+  pivot_wider(names_from = "grp", values_from = "product_num") %>%
+  left_join(orders, by = "order_id") %>%
+  relocate(order_dow, .before = `2`) %>%
+  relocate(order_hour_of_day, .before = `2`)
+
+dep_pca[is.na(dep_pca)] <- 0
+
+# Prepare Data
+dep_data_pca <- dep_pca
+data_by_day_pca <- dep_data_pca %>%
+  as.data.frame() %>%
+  select(-order_id) 
+
+# Transform y variable to a factor
+data_by_day_pca$order_dow<- as.factor(data_by_day_pca$order_dow)
+
+# Make Valid Column Names 
+colnames(data_by_day_pca) <- make.names(colnames(data_by_day_pca))
+
+# Separate our data into Training set and Test set
+set.seed(12345) # for reproducibility
+index.tr <- createDataPartition(y = data_by_day_pca$order_dow, p= 0.8,list = FALSE)
+df.tr.pca <- data_by_day_pca[index.tr,]
+df.te.pca <- data_by_day_pca[-index.tr,]
+
+# Table before Balancing
+table(df.tr.pca$order_dow)
+
+# Balancing the data with resampling (only to compare results and if the data was balanced)
+n.0 <- max(table(df.tr.pca$order_dow)) # 21972
+
+df.tr.pca.0 <- filter(df.tr.pca, order_dow =="0") ## the "Sunday" cases
+df.tr.pca.1 <- filter(df.tr.pca, order_dow =="1") ## the "Monday" cases
+df.tr.pca.2 <- filter(df.tr.pca, order_dow =="2") ## the "Tuesday" cases
+df.tr.pca.3 <- filter(df.tr.pca, order_dow =="3") ## the "Wednesday" cases
+df.tr.pca.4 <- filter(df.tr.pca, order_dow =="4") ## the "Thursday" cases
+df.tr.pca.5 <- filter(df.tr.pca, order_dow =="5") ## the "Friday" cases
+df.tr.pca.6 <- filter(df.tr.pca, order_dow =="6") ## the "Saturday" cases
+
+## re-sample the lower instances to reach the highest one
+index.pca.1 <- sample(size=n.0, x=1:nrow(df.tr.pca.1), replace=TRUE)
+index.pca.2 <- sample(size=n.0, x=1:nrow(df.tr.pca.2), replace=TRUE) 
+index.pca.3 <- sample(size=n.0, x=1:nrow(df.tr.pca.3), replace=TRUE)
+index.pca.4 <- sample(size=n.0, x=1:nrow(df.tr.pca.4), replace=TRUE)
+index.pca.5 <- sample(size=n.0, x=1:nrow(df.tr.pca.5), replace=TRUE)
+index.pca.6 <- sample(size=n.0, x=1:nrow(df.tr.pca.6), replace=TRUE)
+
+## Bind all the "" and the re-sampled "Good"
+df.tr.pca.resamp <- data.frame(rbind(df.tr.pca.0, df.tr.pca.1[index.pca.1,], df.tr.pca.2[index.pca.2,],
+                                 df.tr.pca.3[index.pca.3,], df.tr.pca.4[index.pca.4,], 
+                                 df.tr.pca.5[index.pca.5,],df.tr.pca.6[index.pca.6,]))
+table(df.tr.pca.resamp$order_dow) ## The cases are balanced
+
+# Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
+set.seed(12345) 
+model_treepca <- caret::train(order_dow ~ .,
+                           data = df.tr.pca.resamp,
+                           method ="rpart",
+                           preProcess = NULL,
+                           trControl=trainControl(method="repeatedcv", number=10,
+                                                  repeats=10, verboseIter=FALSE,
+                                                  sampling="down"))
+
+# Plot the Tree
+
+rpart.plot(model_treepca$finalModel, cex = 0.6)
+
+# Another way to plot
+par(mar = c(0.5, 1, 0.5, 1))
+plot(model_treepca$finalModel, branch = 1, uniform=T)
+text(model_treepca$finalModel, digits = 1, use.n = TRUE, cex = 0.6, pretty=1)
+
+# Apply Model to the test dataset
+
+set.seed(12345)
+model_treepca_pred <- predict(model_treepca, newdata=df.te.pca)
+table(Pred= model_treepca_pred, Obs=df.te.pca$order_dow)
+
+# Measure the accuracy of the prediction
+
+confusionMatrix(data=as.factor(model_treepca_pred), reference = df.te.pca$order_dow)
+```
+
+>>>>useful in explaination 
+
+PCA explains the similarity of variables. There are two metrics which are correlation(scaled) and covariance(not scaled). In this project, the quantity of products is our main interest therefore, covariance is the suitable metric.
+
+Regarding the result from PCA, we observe that the first and second components explain 46.68% and 13.76% of variance of the data. Referring to the rule of thumb which selects the number of dimensions that allow to explain at least 80% of the variation, therefore comp 1 - comp 6 are selected and around 83.9% of variance of the data are explained.
+
+Our finding:
+1. Produce has the highest variation. Also, it is highly positively correlated with Dim1 and negatively correlated with Dim2
+2. The other departments including the second to sixth largest variance variables(Dairy egg, Snacks, Frozen, Beverages and Pantry) are positively correlated with Dim1 and Dim2 except Household. 
+3. Household is almost uncorrelated with Dim1.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+
+pca_department <- PCA(data_pca_department[,-1], scale.unit = FALSE)
+pca_department
+pca_department$eig
+pca_department$var$coord
+```
+
+
+>>>>keep note into remark before doing supervised learning
+
+Note: 
+1. assuming that one row is equal to one quantity of each product.
+2. when I use prior + train set, it takes a lot of run execution time (~30 mins) and keep crashing so I decided to use only training set. I think this is the reason why instacart separated data into two groups. In my opinion, the training set contains 1.3 million observations which are more than enough. 
