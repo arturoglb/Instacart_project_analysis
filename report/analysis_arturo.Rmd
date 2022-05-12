@@ -1,0 +1,472 @@
+
+## **Analysis**
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+source(here::here("script/setup.R"))
+```
+
+### **Data preparation** 
+
+
+```{r echo=FALSE, message=FALSE}
+
+############## Data with 2 Levels Weekday and Weekend ###################
+
+# Prepare Data
+dep_data <- department_wide
+data <- dep_data %>%
+  as.data.frame() %>%
+  select(-order_id) 
+
+data <- data %>% mutate(Group =ifelse(
+  order_dow == 0|order_dow == 6, "weekend", "weekday")) %>%
+  select(-order_dow)
+
+# Transform y variable to a factor
+data$Group<- as.factor(data$Group)
+
+
+# Make Valid Column Names 
+colnames(data) <- make.names(colnames(data))
+
+# Separate our data into Training set and Test set
+set.seed(12345) # for reproducibility
+index.tr <- createDataPartition(y = data$Group, p= 0.8,list = FALSE)
+df.tr <- data[index.tr,]
+df.te <- data[-index.tr,]
+
+# Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
+set.seed(12345)
+model_tree_group <- caret::train(Group ~ .,
+                           data = df.tr,
+                           method ="rpart",
+                           preProcess = NULL,
+                           trControl=trainControl(method="repeatedcv", number=10,
+                                                  repeats=10, verboseIter=FALSE,
+                                                  sampling="down"))
+
+# Plot the Tree
+
+rpart.plot(model_tree_group$finalModel, cex = 0.6 )
+
+# Another way to plot
+par(mar = c(0.5, 1, 0.5, 1))
+plot(model_tree_group$finalModel, branch = 1)
+text(model_tree_group$finalModel, digits = 1, use.n = TRUE, cex = 0.6, pretty=1)
+
+# Apply Model to the test dataset
+
+set.seed(12345)
+model_tree_group_pred <- predict(model_tree_group, newdata=df.te)
+table(Pred= model_tree_group_pred, Obs=df.te$Group)
+
+# Measure the accuracy of the prediction
+
+confusionMatrix(data=as.factor(model_tree_group_pred), reference = df.te$Group)
+```
+
+> Data as it is
+
+```{r echo=FALSE, message=FALSE}
+
+################# Considering days as one day ###########################
+
+# Prepare Data
+dep_data <- department_wide
+data_by_day <- dep_data %>%
+  as.data.frame() %>%
+  select(-order_id) 
+
+# Transform y variable to a factor
+data_by_day$order_dow<- as.factor(data_by_day$order_dow)
+
+# Make Valid Column Names 
+colnames(data_by_day) <- make.names(colnames(data_by_day))
+
+# Separate our data into Training set and Test set
+set.seed(12345) # for reproducibility
+index.tr <- createDataPartition(y = data_by_day$order_dow, p= 0.8,list = FALSE)
+df.tr <- data_by_day[index.tr,]
+df.te <- data_by_day[-index.tr,]
+
+# Table before Balancing
+table(df.tr$order_dow)
+
+# Balancing the data with resampling (only to compare results and if the data was balanced)
+n.0 <- max(table(df.tr$order_dow)) # 21972
+
+df.tr.0 <- filter(df.tr, order_dow =="0") ## the "Sunday" cases
+df.tr.1 <- filter(df.tr, order_dow =="1") ## the "Monday" cases
+df.tr.2 <- filter(df.tr, order_dow =="2") ## the "Tuesday" cases
+df.tr.3 <- filter(df.tr, order_dow =="3") ## the "Wednesday" cases
+df.tr.4 <- filter(df.tr, order_dow =="4") ## the "Thursday" cases
+df.tr.5 <- filter(df.tr, order_dow =="5") ## the "Friday" cases
+df.tr.6 <- filter(df.tr, order_dow =="6") ## the "Saturday" cases
+
+## sub-sample the lower instances to reach the highest one
+index.1 <- sample(size=n.0, x=1:nrow(df.tr.1), replace=TRUE)
+index.2 <- sample(size=n.0, x=1:nrow(df.tr.2), replace=TRUE) 
+index.3 <- sample(size=n.0, x=1:nrow(df.tr.3), replace=TRUE)
+index.4 <- sample(size=n.0, x=1:nrow(df.tr.4), replace=TRUE)
+index.5 <- sample(size=n.0, x=1:nrow(df.tr.5), replace=TRUE)
+index.6 <- sample(size=n.0, x=1:nrow(df.tr.6), replace=TRUE)
+
+## Bind all the "" and the sub-sampled "Good"
+df.tr.resamp <- data.frame(rbind(df.tr.0, df.tr.1[index.1,], df.tr.2[index.2,],
+                                 df.tr.3[index.3,], df.tr.4[index.4,], 
+                                 df.tr.5[index.5,],df.tr.6[index.6,]))
+table(df.tr.resamp$order_dow) ## The cases are balanced
+
+# Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
+set.seed(12345) 
+model_tree <- caret::train(order_dow ~ .,
+                           data = df.tr,
+                           method ="rpart",
+                           preProcess = NULL,
+                           trControl=trainControl(method="repeatedcv", number=10,
+                                                  repeats=10, verboseIter=FALSE,
+                                                  sampling="down"))
+
+# Plot the Tree
+
+rpart.plot(model_tree$finalModel, cex = 0.6)
+
+# Another way to plot
+par(mar = c(0.5, 1, 0.5, 1))
+plot(model_tree$finalModel, branch = 1, uniform=T)
+text(model_tree$finalModel, digits = 1, use.n = TRUE, cex = 0.6, pretty=1)
+
+# Apply Model to the test dataset
+
+set.seed(12345)
+model_tree_pred <- predict(model_tree, newdata=df.te)
+table(Pred= model_tree_pred, Obs=df.te$order_dow)
+
+# Measure the accuracy of the prediction
+
+confusionMatrix(data=as.factor(model_tree_pred), reference = df.te$order_dow)
+```
+
+> Sub-sampling Accuracy
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    0    1    2    3    4    5    6
+         0 2989 1776 1313 1246 1283 1405 1771
+         1    0    0    0    0    0    0    0
+         2    0    0    0    0    0    0    0
+         3    0    0    0    0    0    0    0
+         4 1564 1504 1315 1307 1343 1415 1265
+         5    0    0    0    0    0    0    0
+         6  940  654  595  584  565  661  744
+
+Overall Statistics
+                                        
+               Accuracy : 0.193         
+                 95% CI : (0.189, 0.198)
+    No Information Rate : 0.209         
+    P-Value [Acc > NIR] : 1             
+                                        
+                  Kappa : 0.034         
+                                        
+ Mcnemar's Test P-Value : NA            
+
+Statistics by Class:
+
+                     Class: 0 Class: 1 Class: 2 Class: 3 Class: 4
+Sensitivity             0.544     0.00    0.000     0.00   0.4209
+Specificity             0.576     1.00    1.000     1.00   0.6368
+Pos Pred Value          0.254      NaN      NaN      NaN   0.1383
+Neg Pred Value          0.827     0.85    0.877     0.88   0.8882
+Prevalence              0.209     0.15    0.123     0.12   0.1216
+Detection Rate          0.114     0.00    0.000     0.00   0.0512
+Detection Prevalence    0.449     0.00    0.000     0.00   0.3702
+Balanced Accuracy       0.560     0.50    0.500     0.50   0.5289
+                     Class: 5 Class: 6
+Sensitivity             0.000   0.1968
+Specificity             1.000   0.8219
+Pos Pred Value            NaN   0.1569
+Neg Pred Value          0.867   0.8588
+Prevalence              0.133   0.1441
+Detection Rate          0.000   0.0284
+Detection Prevalence    0.000   0.1808
+Balanced Accuracy       0.500   0.5094
+
+
+### **Spliting by week days and weekend days**
+
+> **Prepare the data and build the model**
+
+```{r echo=FALSE, message=FALSE}
+
+################# Group by Week ###########################
+
+# Prepare Data
+dep_data <- department_wide
+weekdays <- dep_data %>%
+  filter(order_dow != "0" & order_dow != "6") %>%
+  as.data.frame() %>%
+  select(-order_id) 
+
+# Transform y variable to a factor
+weekdays$order_dow<- as.factor(weekdays$order_dow)
+
+# Make Valid Column Names 
+colnames(weekdays) <- make.names(colnames(weekdays))
+
+# Separate our data into Training set and Test set
+set.seed(12345) # for reproducibility
+index.tr <- createDataPartition(y = weekdays$order_dow, p= 0.8,list = FALSE)
+df.tr <- weekdays[index.tr,]
+df.te <- weekdays[-index.tr,]
+
+# Table before Balancing
+table(df.tr$order_dow)
+
+# Balancing the data
+n.1 <- max(table(df.tr$order_dow)) ## 560
+
+df.tr.1 <- filter(df.tr, order_dow =="1") ## the "Monday" cases
+df.tr.2 <- filter(df.tr, order_dow =="2") ## the "Tuesday" cases
+df.tr.3 <- filter(df.tr, order_dow =="3") ## the "Wednesday" cases
+df.tr.4 <- filter(df.tr, order_dow =="4") ## the "Thursday" cases
+df.tr.5 <- filter(df.tr, order_dow =="5") ## the "Friday" cases
+
+## sub-sample the lower instances to reach the highest one
+index.2 <- sample(size=n.1, x=1:nrow(df.tr.2), replace=TRUE) 
+index.3 <- sample(size=n.1, x=1:nrow(df.tr.3), replace=TRUE)
+index.4 <- sample(size=n.1, x=1:nrow(df.tr.4), replace=TRUE)
+index.5 <- sample(size=n.1, x=1:nrow(df.tr.5), replace=TRUE)
+
+## Bind all the "" and the sub-sampled "Good"
+df.tr.resamp <- data.frame(rbind(df.tr.1, df.tr.2[index.2,], df.tr.3[index.3,],
+                                 df.tr.4[index.4,], df.tr.5[index.5,]))
+table(df.tr.resamp$order_dow) ## The cases are balanced
+
+# Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
+set.seed(12345) 
+model_tree_week <- caret::train(order_dow ~ .,
+                           data = df.tr.resamp,
+                           method ="rpart",
+                           preProcess = NULL,
+                           trControl=trainControl(method="repeatedcv", number=10,
+                                                  repeats=10, verboseIter=FALSE))
+
+# Plot the Tree
+
+rpart.plot(model_tree_week$finalModel, cex = 0.6)
+
+# Another way to plot
+par(mar = c(0.5, 1, 0.5, 1))
+plot(model_tree_week$finalModel, branch = 1, uniform=T)
+text(model_tree_week$finalModel, digits = 1, use.n = TRUE, cex = 0.6, pretty=1)
+
+# Apply Model to the test dataset
+
+set.seed(12345)
+model_tree_week_pred <- predict(model_tree_week, newdata=df.te)
+table(Pred= model_tree_week_pred, Obs=df.te$order_dow)
+
+# Measure the accuracy of the prediction
+
+confusionMatrix(data=as.factor(model_tree_week_pred), reference = df.te$order_dow)
+```
+
+> Sub-sampling Accuracy
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    1    2    3    4    5
+         1 1510 1088 1039 1064 1174
+         2  498  445  415  424  439
+         3    0    0    0    0    0
+         4 1632 1423 1447 1436 1542
+         5  294  267  236  267  326
+
+Overall Statistics
+                                        
+               Accuracy : 0.219         
+                 95% CI : (0.213, 0.225)
+    No Information Rate : 0.232         
+    P-Value [Acc > NIR] : 1             
+                                        
+                  Kappa : 0.018         
+                                        
+ Mcnemar's Test P-Value : <2e-16        
+
+Statistics by Class:
+
+                     Class: 1 Class: 2 Class: 3 Class: 4 Class: 5
+Sensitivity             0.384   0.1381    0.000   0.4500   0.0937
+Specificity             0.665   0.8708    1.000   0.5612   0.9211
+Pos Pred Value          0.257   0.2004      NaN   0.1920   0.2345
+Neg Pred Value          0.781   0.8116    0.815   0.8150   0.7974
+Prevalence              0.232   0.1900    0.185   0.1881   0.2052
+Detection Rate          0.089   0.0262    0.000   0.0846   0.0192
+Detection Prevalence    0.346   0.1309    0.000   0.4409   0.0819
+Balanced Accuracy       0.524   0.5044    0.500   0.5056   0.5074
+
+> Resampling Accuracy
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    1    2    3    4    5
+         1 1075  751  707  698  788
+         2  502  469  442  460  446
+         3 1680 1463 1479 1488 1629
+         4    0    0    0    0    0
+         5  677  540  509  545  618
+
+Overall Statistics
+                                        
+               Accuracy : 0.215         
+                 95% CI : (0.208, 0.221)
+    No Information Rate : 0.232         
+    P-Value [Acc > NIR] : 1             
+                                        
+                  Kappa : 0.018         
+                                        
+ Mcnemar's Test P-Value : <2e-16        
+
+Statistics by Class:
+
+                     Class: 1 Class: 2 Class: 3 Class: 4 Class: 5
+Sensitivity            0.2733   0.1455   0.4715    0.000   0.1775
+Specificity            0.7741   0.8654   0.5473    1.000   0.8316
+Pos Pred Value         0.2675   0.2022   0.1911      NaN   0.2139
+Neg Pred Value         0.7792   0.8120   0.8203    0.812   0.7966
+Prevalence             0.2319   0.1900   0.1849    0.188   0.2052
+Detection Rate         0.0634   0.0276   0.0872    0.000   0.0364
+Detection Prevalence   0.2369   0.1367   0.4561    0.000   0.1703
+Balanced Accuracy      0.5237   0.5055   0.5094    0.500   0.5046
+
+```{r echo=FALSE, message=FALSE}
+
+################# Group by Weekend ###########################
+
+# Prepare Data
+dep_data <- department_wide
+weekend <- dep_data %>%
+  filter(order_dow == "0" | order_dow == "6") %>%
+  as.data.frame() %>%
+  select(-order_id) 
+
+# Transform y variable to a factor
+weekend$order_dow<- as.factor(weekend$order_dow)
+
+# Make Valid Column Names 
+colnames(weekend) <- make.names(colnames(weekend))
+
+# Separate our data into Training set and Test set
+set.seed(12345) # for reproducibility
+index.tr <- createDataPartition(y = weekend$order_dow, p= 0.8,list = FALSE)
+df.tr <- weekend[index.tr,]
+df.te <- weekend[-index.tr,]
+
+# Table before Balancing
+table(df.tr$order_dow)
+
+# Balancing the data
+n.0 <- max(table(df.tr$order_dow)) ## 21,972
+
+df.tr.0 <- filter(df.tr, order_dow =="0") ## the "Monday" cases
+df.tr.6 <- filter(df.tr, order_dow =="6") ## the "Tuesday" cases
+
+## sub-sample the lower instances to reach the highest one
+index.6 <- sample(size=n.0, x=1:nrow(df.tr.6), replace=TRUE) 
+
+## Bind all the "" and the sub-sampled "Good"
+df.tr.resamp <- data.frame(rbind(df.tr.0, df.tr.6[index.6,]))
+table(df.tr.resamp$order_dow) ## The cases are balanced
+
+# Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
+set.seed(12345) 
+model_tree_weekend <- caret::train(order_dow ~ .,
+                           data = df.tr,
+                           method ="rpart",
+                           preProcess = NULL,
+                           trControl=trainControl(method="repeatedcv", number=10,
+                                                  repeats=10, verboseIter=FALSE,
+                                                  sampling="down"))
+
+# Plot the Tree
+
+rpart.plot(model_tree_weekend$finalModel, cex = 0.6)
+
+# Another way to plot
+par(mar = c(0.5, 1, 0.5, 1))
+plot(model_tree_weekend$finalModel, branch = 1, uniform=T)
+text(model_tree_weekend$finalModel, digits = 1, use.n = TRUE, cex = 0.6, pretty=1)
+
+# Apply Model to the test dataset
+
+set.seed(12345)
+model_tree_weekend_pred <- predict(model_tree_weekend, newdata=df.te)
+table(Pred= model_tree_weekend_pred, Obs=df.te$order_dow)
+
+# Measure the accuracy of the prediction
+
+confusionMatrix(data=as.factor(model_tree_weekend_pred), reference = df.te$order_dow)
+```
+
+> Sub-sampling Accuracy
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    0    6
+         0 3241 1892
+         6 2252 1888
+                                        
+               Accuracy : 0.553         
+                 95% CI : (0.543, 0.563)
+    No Information Rate : 0.592         
+    P-Value [Acc > NIR] : 1             
+                                        
+                  Kappa : 0.088         
+                                        
+ Mcnemar's Test P-Value : 2.45e-08      
+                                        
+            Sensitivity : 0.590         
+            Specificity : 0.499         
+         Pos Pred Value : 0.631         
+         Neg Pred Value : 0.456         
+             Prevalence : 0.592         
+         Detection Rate : 0.350         
+   Detection Prevalence : 0.554         
+      Balanced Accuracy : 0.545         
+                                        
+       'Positive' Class : 0 
+
+> Resampling Accuracy
+
+Confusion Matrix and Statistics
+
+          Reference
+Prediction    0    6
+         0 2052 1153
+         6 3441 2627
+                                        
+               Accuracy : 0.505         
+                 95% CI : (0.494, 0.515)
+    No Information Rate : 0.592         
+    P-Value [Acc > NIR] : 1             
+                                        
+                  Kappa : 0.063         
+                                        
+ Mcnemar's Test P-Value : <2e-16        
+                                        
+            Sensitivity : 0.374         
+            Specificity : 0.695         
+         Pos Pred Value : 0.640         
+         Neg Pred Value : 0.433         
+             Prevalence : 0.592         
+         Detection Rate : 0.221         
+   Detection Prevalence : 0.346         
+      Balanced Accuracy : 0.534         
+                                        
+       'Positive' Class : 0  
+
