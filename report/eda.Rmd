@@ -101,7 +101,7 @@ kable(order_products_train[1:50,], caption = "The order_products_train table") %
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### **Table 6 - order**
+#### **Table 5 - order**
 
 ```{r, fig.height=6, fig.width=10}
 orders <- read.csv(here::here("data/orders.csv"), header = TRUE)
@@ -124,7 +124,7 @@ week from the previous purchase. Also, we can visualize on the graph
 Monday's comparing to the rest of the week, and on the last chart
 `order_hour_of_day`,we note a high demand of orders between 9am to 6pm.
 
-#### **Table 7 - user_purchases**
+#### **Table 6 - user_purchases**
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Identify the products purchased with their departments and the time and day of consumption
@@ -134,7 +134,7 @@ user_purchases <- orders %>%
   left_join(products, by = "product_id") %>%
   left_join(aisles, by = c("aisle_id")) %>%
   left_join(departments, by = c("department_id")) %>%
-  select(order_id, order_dow, order_hour_of_day, product_id, aisle_id,
+  select(order_id, order_dow, order_hour_of_day, product_id, aisle_id, aisle,
          department)
 
 orders <- orders %>%
@@ -150,6 +150,17 @@ department_wide <- user_purchases %>%
   relocate(order_hour_of_day, .before = `canned goods`)
 
 department_wide[is.na(department_wide)] <- 0
+
+aisle_wide <- user_purchases %>%
+  group_by(order_id, aisle) %>%
+  summarise(product_num = n()) %>%
+  pivot_wider(names_from = "aisle", values_from = "product_num") %>%
+  left_join(orders, by = "order_id") %>%
+  relocate(order_dow, .before = `canned meat seafood`) %>%
+  relocate(order_hour_of_day, .before = `canned meat seafood`)
+
+aisle_wide[is.na(aisle_wide)] <- 0
+
 
 #if(.Platform$OS.type == "windows") withAutoprint({
 #memory.size()
@@ -394,59 +405,3 @@ fluctuation during the period. Yet, the department we could pay more
 attention to is the babies' products. Although it has the similar
 pattern, it fluctuate more than the others.
 <br>
-
-### **PCA**
-
-We analyze the association between the numbers of orders/reordered products and departments. 
-
-Note: 
-1. assuming that one row is equal to one quantity of each product.
-2. when I use prior + train set, it takes a lot of run execution time (~30 mins) and keep crashing so I decided to use only training set. I think this is the reason why instacart separated data into two groups. In my opinion, the training set contains 1.3 million observations which are more than enough. 
-
-```{r echo=FALSE, message=FALSE}
-#Preparation table
-pca_data <- user_purchases_tr %>% 
-            select(order_id, user_id, product_name, aisle, department, reordered)%>%
-            mutate(ordered = 1)
-```
-
-**PCA by department**
-PCA explains the similarity of variables. There are two metrics which are correlation(scaled) and covariance(not scaled). In this project, the quantity of products is our main interest therefore, covariance is the suitable metric.
-
-Regarding the result from PCA, we observe that the first and second components explain 46.68% and 13.76% of variance of the data. Referring to the rule of thumb which selects the number of dimensions that allow to explain at least 80% of the variation, therefore comp 1 - comp 6 are selected and around 83.9% of variance of the data are explained.
-
-Our finding:
-1. Produce has the highest variation. Also, it is highly positively correlated with Dim1 and negatively correlated with Dim2
-2. The other departments including the second to sixth largest variance variables(Dairy egg, Snacks, Frozen, Beverages and Pantry) are positively correlated with Dim1 and Dim2 except Household. 
-3. Household is almost uncorrelated with Dim1.
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-data_pca_department <- pca_data %>% 
-                  select(order_id, department, ordered) %>%
-                  group_by(order_id, department) %>%
-                  summarise(ordered_num = n()) %>%
-                  pivot_wider(names_from = "department", values_from = "ordered_num")
-
-data_pca_department[is.na(data_pca_department)] <- 0 #replace NA with 0
-
-pca_department <- PCA(data_pca_department[,-1], scale.unit = FALSE)
-pca_department
-pca_department$eig
-pca_department$var$coord
-```
-Alternative PCA to make sure that the results are the same.
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-princomp_department <- princomp(data_pca_department[,-1], cor=FALSE)
-princomp_department
-summary(princomp_department)
-```
-
-<br>
-Summary from TA -Supervised and unsupervised can forecast reordered
-products -Supervised = Tree SVM -Unsupervised = clustering PCA
-
-Our output: 
-1. To forecast how many days are there between the prior
-orders and the recorded orders: Clustering, PCA 
-2. Reordered products 
-3. Association between products: PCA and clustering in class
