@@ -15,11 +15,11 @@ source(here::here("scripts/setup.R"))
 * this version haven't  drop the colomn of day of week and hour of day. seems not good enough  
 
 ```{r}
-library(fastDummies)
-department_wide.tr <- read.csv(here::here("data/department_wide.tr2.csv")) %>%
-  select(-X, -order_id)
-
-row.names(department_wide.tr) <- paste("O", c(1:nrow(department_wide.tr)), sep="") 
+# library(fastDummies)
+# department_wide.tr <- read.csv(here::here("data/department_wide.tr2.csv")) %>%
+#   select(-X, -order_id)
+# 
+# row.names(department_wide.tr) <- paste("O", c(1:nrow(department_wide.tr)), sep="") 
 ```
 
 ```{r}
