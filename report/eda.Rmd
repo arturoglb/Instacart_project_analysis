@@ -1,11 +1,17 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
 
-## EDA
+## Exploratory Data Analysis
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 source(here::here("scripts/setup.R"))
 ```
+### **Data preparation**
 
-### **Data Description**
+#### **Data Description**
 
 **`orders`** (3.4m rows, 206k users):\
 \* `order_id`: order identifier\
@@ -49,7 +55,7 @@ orders)\
 orders)\
 <br>
 
-#### **Table 1 - aisles**
+##### **Table 1 - aisles**
 
 ```{r echo=FALSE, message=FALSE}
 aisles <- read.csv(here::here("data/aisles.csv"), header = TRUE)
@@ -62,7 +68,7 @@ kable(aisles[,], caption = "The aisles table") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### **Table 2 - departments**
+##### **Table 2 - departments**
 
 ```{r echo=FALSE, message=FALSE}
 departments <- read.csv(here::here("data/departments.csv"), header = TRUE)
@@ -75,7 +81,7 @@ kable(departments[,], caption = "The departments table") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### **Table 3 - products**
+##### **Table 3 - products**
 
 ```{r echo=FALSE, message=FALSE}
 products <- read.csv(here::here("data/products.csv"), header = TRUE)
@@ -88,7 +94,7 @@ kable(products[1:50,], caption = "The products table") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### **Table 4 - order_products_train**
+##### **Table 4 - order_products_train**
 
 ```{r echo=FALSE, message=FALSE}
 order_products_train <- read.csv(here::here("data/order_products__train.csv"), header = TRUE)
@@ -101,7 +107,7 @@ kable(order_products_train[1:50,], caption = "The order_products_train table") %
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### **Table 5 - order**
+##### **Table 5 - purchase time per order table**
 
 ```{r, fig.height=6, fig.width=10}
 orders <- read.csv(here::here("data/orders.csv"), header = TRUE)
@@ -111,35 +117,39 @@ sum(is.na(orders)) #206209
 max(orders$user_id) #206209
 #meaning that data is complete
 
-orders %>% filter(eval_set == "train" ) %>%
-  select(-order_id, -user_id, -order_number) %>%
+orders <- orders %>%
+  filter(eval_set == "train") %>%
+  select(order_id, order_dow, order_hour_of_day)
+
+orders %>%
+  select(-order_id) %>%
   inspect_num() %>%
   show_plot(col_palette = 3)
+
+kable(orders[1:50,], caption = "The purchase time per order table") %>%
+  kable_styling(bootstrap_options = "bordered") %>%
+  kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-We can observe on the first chart `days_since_prior_order` that most of
-the users have a higher probability to do another purchase order after a
-week from the previous purchase. Also, we can visualize on the graph
-`oder_dow` that the most frequent days of ordering are Sunday's and
-Monday's comparing to the rest of the week, and on the last chart
-`order_hour_of_day`,we note a high demand of orders between 9am to 6pm.
+We can observe on the left chart `oder_dow` that the most frequent days of ordering are Sunday's and Monday's comparing to the rest of the week, and on the right chart `order_hour_of_day`,we note a high demand of orders between 9am to 6pm.
 
-#### **Table 6 - user_purchases**
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+##### **Table 6 - user_purchases**
+```{r echo=FALSE, message=FALSE}
 # Identify the products purchased with their departments and the time and day of consumption
 user_purchases <- orders %>%
-  #filter(eval_set == "train") %>%
   left_join(order_products_train, by = "order_id") %>%
   left_join(products, by = "product_id") %>%
   left_join(aisles, by = c("aisle_id")) %>%
   left_join(departments, by = c("department_id")) %>%
-  select(order_id, order_dow, order_hour_of_day, product_id, aisle_id, aisle,
-         department)
+  select(order_id, order_dow, order_hour_of_day, aisle_id, aisle, department_id, department)
 
-orders <- orders %>%
-  filter(eval_set == "train") %>%
-  select(order_id, order_dow, order_hour_of_day)
+kable(user_purchases[1:50,], caption = "The user purchases table") %>%
+  kable_styling(bootstrap_options = "bordered") %>%
+  kableExtra::scroll_box(width = "100%", height = "250px")
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+#Preparation for the analysis
 
 department_wide <- user_purchases %>%
   group_by(order_id, department) %>%
@@ -160,94 +170,19 @@ aisle_wide <- user_purchases %>%
   relocate(order_hour_of_day, .before = `canned meat seafood`)
 
 aisle_wide[is.na(aisle_wide)] <- 0
-
-prior <- read.csv(here::here("data/order_products__prior.csv"), header = TRUE)
-
-#if(.Platform$OS.type == "windows") withAutoprint({
-#memory.size()
-#memory.size(TRUE)
-#memory.limit()
-#})
-#memory.limit(size=56000)
-
-#user_purchases_prtr <- rbind(user_purchases_pr, user_purchases_tr)
-```
-<br>
-Overall, approximately 60% of the total orders are reordered products.
-
-```{r echo=FALSE, message=FALSE}
-total_percentage_reorder <-
-  (sum(num_reorder_product$total_reorder)/sum(num_reorder_product$total_order))*100 
-#~60%  
-```
-####Mandy comment -> Still keeping top 10 reordered products, top 10 reordered product by aisle. Just to see the overall.
-
-### **Plotting**
-
-**Top 10 reordered products**
-
-As the result from the table, we can see that fresh fruits and packaged
-vegetables fruits under produce department are the most reordered
-products.
-
-```{r echo=FALSE, message=FALSE}
-num_reorder_product <- user_purchases %>% 
-  group_by(product_id, product_name, aisle, department) %>%
-  summarise(total_reorder = sum(reordered, na.rm = TRUE), 
-            total_order = length(product_id)) %>%
-  arrange(desc(total_reorder)) %>%
-  mutate(percentage_reorder = (total_reorder/total_order)*100)
-
-kable(num_reorder_product[1:10,], caption = "The top 10 reordered products") %>%
-  kable_styling(bootstrap_options = "bordered") %>%
-  kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-```{r, fig.height=8, fig.width=10}
+### **Visualization**
 
-fig <- num_reorder_product[1:10,] %>% plot_ly()
-fig <- fig %>% add_trace(x = ~reorder(product_name, -total_reorder), 
-                         y = ~total_reorder, type = 'bar', 
-                         name = "The number of reorder", 
-                         textposition = 'auto',
-                         offsetgroup = 1,
-                         marker = list(color = 'rgb(49,130,189)'))
-
-ay <- list(
-  font = list(color = "blue"),
-  overlaying = "y",
-  side = "right",
-  title = "percentage of reorder",
-  rangemode = "tozero")
-
-fig <- fig %>% add_trace(x = ~reorder(product_name, -total_reorder), 
-                         y = ~percentage_reorder, yaxis = "y2", type = 'bar', 
-                         name = "Percentage of reordered products", 
-                         textposition = 'auto', 
-                         offsetgroup = 2,
-                         marker = list(color = 'rgb(204,204,204)'))
-
-fig <- fig %>% layout(title = "The top 10 number of reordered products", yaxis2 = ay, 
-                      xaxis = list(title = "", tickangle = -45),
-                      yaxis = list(title = "number of reorder"),
-         margin = list(b = 100),
-         barmode = 'group')
-
-fig
-
-```
-
-**Top 10 reordered products by aisle**
+**Top 10 number of purchase by aisle**
 
 ```{r echo=FALSE, message=FALSE}
 num_aisle_product <- user_purchases %>% 
   group_by(aisle, department) %>%
-  summarise(total_reorder = sum(reordered, na.rm = TRUE), 
-            total_order = length(product_id)) %>%
-  arrange(desc(total_reorder)) %>%
-  mutate(percentage_reorder = (total_reorder/total_order)*100)
+  summarise(total_order = n()) %>%
+  arrange(desc(total_order))
 
-kable(num_aisle_product[1:10,], caption = "The top 10 reordered products by aisle") %>%
+kable(num_aisle_product[1:10,], caption = "The top 10 number of purchase by aisle") %>%
   kable_styling(bootstrap_options = "bordered") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
@@ -255,31 +190,16 @@ kable(num_aisle_product[1:10,], caption = "The top 10 reordered products by aisl
 ```{r, fig.height=8, fig.width=10}
 
 fig <- num_aisle_product[1:10,] %>% plot_ly()
-fig <- fig %>% add_trace(x = ~reorder(aisle, -total_reorder), 
-                         y = ~total_reorder, type = 'bar', 
-                         name = "The number of reorder", 
+fig <- fig %>% add_trace(x = ~reorder(aisle, -total_order), 
+                         y = ~total_order, type = 'bar', 
+                         name = "The number of purchase", 
                          textposition = 'auto',
                          offsetgroup = 1,
                          marker = list(color = 'rgb(49,130,189)'))
 
-ay <- list(
-  font = list(color = "blue"),
-  overlaying = "y",
-  side = "right",
-  title = "percentage of reorder",
-  rangemode = "tozero")
-
-fig <- fig %>% add_trace(x = ~reorder(aisle, -total_reorder), 
-                         y = ~percentage_reorder, yaxis = "y2", type = 'bar', 
-                         name = "Percentage of reordered products", 
-                         textposition = 'auto', 
-                         offsetgroup = 2,
-                         marker = list(color = 'rgb(204,204,204)'))
-
-fig <- fig %>% layout(title = "The top 10 number of reordered products by aisle", 
-                      yaxis2 = ay, 
+fig <- fig %>% layout(title = "The top 10 number of purchase by aisle", 
                       xaxis = list(title = "", tickangle = -45),
-                      yaxis = list(title = "number of reorder"),
+                      yaxis = list(title = "number of purchase"),
          margin = list(b = 100),
          barmode = 'group')
 
@@ -287,64 +207,45 @@ fig
 
 ```
 
-**Reordered products by department** 
-########Mandy
-Note: assuming that one row is equal to one quantity of each product
+**The number of purchase by department** 
+
 ```{r echo=FALSE, message=FALSE}
 num_department_product <- user_purchases %>% 
   group_by(department) %>%
-  summarise(total_reorder = sum(reordered, na.rm = TRUE), 
-            total_order = length(product_id)) %>%
-  arrange(desc(total_reorder)) %>%
-  mutate(percentage_reorder = (total_reorder/total_order)*100)
+  summarise(total_order = n()) %>%
+  arrange(desc(total_order))
 
-kable(num_department_product[1:10,], caption = "The top 10 reordered products by department") %>%
+kable(num_department_product[1:10,], caption = "The top 10 number of purchase by department") %>%
   kable_styling(bootstrap_options = "bordered") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
 ```{r, fig.height=8, fig.width=10}
 
-fig <- num_department_product[,] %>% plot_ly()
-fig <- fig %>% add_trace(x = ~reorder(department, -total_reorder), 
-                         y = ~total_reorder, type = 'bar', 
-                         name = "The number of reorder", 
+fig <- num_department_product[] %>% plot_ly()
+fig <- fig %>% add_trace(x = ~reorder(department, -total_order), 
+                         y = ~total_order, type = 'bar', 
+                         name = "The number of purchase", 
                          textposition = 'auto',
                          offsetgroup = 1,
                          marker = list(color = 'rgb(49,130,189)'))
 
-ay <- list(
-  font = list(color = "blue"),
-  overlaying = "y",
-  side = "right",
-  title = "percentage of reorder",
-  rangemode = "tozero")
-
-fig <- fig %>% add_trace(x = ~reorder(department, -total_reorder), 
-                         y = ~percentage_reorder, yaxis = "y2", type = 'bar', 
-                         name = "Percentage of reordered products", 
-                         textposition = 'auto', 
-                         offsetgroup = 2,
-                         marker = list(color = 'rgb(204,204,204)'))
-
-fig <- fig %>% layout(title = "The top 10 number of reordered products by department", 
-                      yaxis2 = ay, 
+fig <- fig %>% layout(title = "The number of purchase by department", 
                       xaxis = list(title = "", tickangle = -45),
-                      yaxis = list(title = "number of reorder"),
+                      yaxis = list(title = "number of purchase"),
          margin = list(b = 100),
          barmode = 'group')
 
 fig
-
 ```
 
-**Sales Patterns**
-<br> Here, we would like to observe the pattern of sales in depth by
-spilting into departments. Frist, it is the pattern of weekly sales.\
+**Sales Patterns** <br> Here, we would like to observe the pattern of
+sales in depth by spiltting into departments. First, it is the pattern of
+weekly sales.\
 <br>
 
 ```{r, fig.height=8, fig.width=12}
-sales_weekly <- user_purchases_prtr %>%
+sales_weekly <- user_purchases %>%
   group_by(order_dow, department)%>%
   summarise(count_byday=n())
 
@@ -365,44 +266,54 @@ plot_sales_weekly
 
 a.  Although in the graph shown at the beginning illustrates that the
     peak of purchase usually is on Sunday and Monday, we can see alcohol
-    is the exception here. The figure increases slight from Sunday and
-    reach the top on Friday, then decrease sharply on Saturday.
+    is the exception here. For Alcohol, the figure increases slightly from the       trough on Monday and reaches the top on Friday, then decreases sharply on        Saturday.
 
-b.  Beverage and snacks have the entirely same pattern, they most of the
-    orders happens on Sunday and Monday, but the number of orders reach
-    to the peak on Monday and have a decrease trend before Friday.
-    Friday is the third peak during the whole week. The least number is
-    on Saturday.
-
-c.  The rest departments of orders have similar pattern. The figures
-    decrease on the top from Sunday and Monday, then rebound slightly on
-    Saturday.\
+b.  The other departments have similar pattern. The figures decrease from the top     on Sunday, and then start increasing on Friday.\
     <br>
 
-```{r, fig.height=8, fig.width=12}
-sales_daily <- user_purchases_prtr %>%
-  group_by(order_hour_of_day, department)%>%
-  summarise(count_byday=n())
+### **PCA**
 
-sales_daily$order_hour_of_day <- as.numeric(sales_daily$order_hour_of_day)
+We analyze the association between the numbers of orders from different departments. 
 
-plot_sales_daily <- sales_daily %>%
-  ggplot(aes(x=order_hour_of_day,
-             y=count_byday,
-             group=department,
-             color=department))+
-  geom_line()+
-  facet_wrap(~department, nrow=6, scales = 'free_y')+
-  theme(legend.position = "bottom", legend.key.size = unit(10, "pt"))+
-  labs(title = "Daily sales pattern")
+**PCA by department**
+PCA explains the similarity of variables. There are two metrics which are correlation(scaled) and covariance(not scaled). 
+In our analysis, we focus on the relationship between the number of order from each department and day-of-week that users purchase. Thus, we will focus our PCA analysis on non-scale, i.e. using covariance. However, it would be interesting to see the differences of the results between scale and non-scaled PCAs as well, so we will also perform the PCA analysis with correlations. 
 
-plot_sales_daily
+
+***Non-scaled PCA (Covariance)***
+We observe that the first and second components explain 46.68% and 13.76% of variance of the data. Referring to the rule of thumb which selects the number of dimensions that allow to explain at least 75% of the variation, therefore comp 1 - comp 5 are selected and around 79.8% of variance of the data are explained.
+
+Our finding:
+1. Produce has the highest variation. Also, it is highly positively correlated with Dim1 and negatively correlated with Dim2
+2. The other departments including the second to sixth largest variance variables(Dairy egg, Snacks, Frozen, Beverages and Pantry) are positively correlated with Dim1 and Dim2.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+data_pca_department <- user_purchases %>% 
+                  select(order_id, department) %>%
+                  group_by(order_id, department) %>%
+                  summarise(ordered_num = n()) %>%
+                  pivot_wider(names_from = "department", values_from = "ordered_num")
+
+data_pca_department[is.na(data_pca_department)] <- 0 #replace NA with 0
+
+pca_department <- PCA(data_pca_department[,-1], scale.unit = FALSE)
+#pca_department
+pca_department$eig
+pca_department$var$coord
 ```
 
-<br> In terms of the order time of a day, we could observe from the
-graphs above that for every department, the highest number of the order
-happen between the period of 9am and 16pm, and they have slight
-fluctuation during the period. Yet, the department we could pay more
-attention to is the babies' products. Although it has the similar
-pattern, it fluctuate more than the others.
-<br>
+***Scaled PCA (Correlation)***
+We find that the first and second components can explain only 13.6% and 6.6% respectively, and we need 15 components (out of 21) to explain 75% of the variation. This means that correlations between departments are very low and we cannot use PCA to reduce the dimensions of the scaled data.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+pca_department <- PCA(data_pca_department[,-1], scale.unit = TRUE)
+#pca_department
+pca_department$eig
+#pca_department$var$coord
+```
+
+
+
+
+
