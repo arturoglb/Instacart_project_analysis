@@ -76,7 +76,7 @@ Our goal is to determine which day of the week a given order will be placed. Due
 
 > One day of the week - Unbalanced data
 
-For this approach we want to measure the accuracy of the model with the unbalanced data. In addition, it will be interesting to see which departments were considered as the best to split the data into the days of the week to be compared with a balanced data with cross validation (2nd approach). 
+For this approach we want to measure the accuracy of the model with the unbalanced data. In addition, it will be interesting to see which departments were considered the best to split the data into days of the week to later be compared to a balanced data with cross-validation (second approach). 
 
 
 ```{r echo=FALSE, message=FALSE}
