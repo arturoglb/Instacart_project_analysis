@@ -13,6 +13,6 @@ text-align: justify}
 </style>
 
 
-```{r child = c('eda.Rmd')}
+```{r child = c('intro.Rmd', 'eda.Rmd', 'analysis_arturo.Rmd')}
 ```
 

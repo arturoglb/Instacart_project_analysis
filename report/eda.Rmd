@@ -9,7 +9,6 @@ editor_options:
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 source(here::here("scripts/setup.R"))
 ```
-### **Data preparation**
 
 #### **Data Description**
 
@@ -131,9 +130,13 @@ kable(orders[1:50,], caption = "The purchase time per order table") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-We can observe on the left chart `oder_dow` that the most frequent days of ordering are Sunday's and Monday's comparing to the rest of the week, and on the right chart `order_hour_of_day`,we note a high demand of orders between 9am to 6pm.
+We can observe on the left chart `oder_dow` that the most frequent days
+of ordering are Sunday's and Monday's comparing to the rest of the week,
+and on the right chart `order_hour_of_day`,we note a high demand of
+orders between 9am to 6pm.
 
 ##### **Table 6 - user_purchases**
+
 ```{r echo=FALSE, message=FALSE}
 # Identify the products purchased with their departments and the time and day of consumption
 user_purchases <- orders %>%
@@ -207,7 +210,7 @@ fig
 
 ```
 
-**The number of purchase by department** 
+**The number of purchase by department**
 
 ```{r echo=FALSE, message=FALSE}
 num_department_product <- user_purchases %>% 
@@ -240,8 +243,8 @@ fig
 ```
 
 **Sales Patterns** <br> Here, we would like to observe the pattern of
-sales in depth by spiltting into departments. First, it is the pattern of
-weekly sales.\
+sales in depth by spiltting into departments. First, it is the pattern
+of weekly sales.\
 <br>
 
 ```{r, fig.height=8, fig.width=12}
@@ -266,26 +269,39 @@ plot_sales_weekly
 
 a.  Although in the graph shown at the beginning illustrates that the
     peak of purchase usually is on Sunday and Monday, we can see alcohol
-    is the exception here. For Alcohol, the figure increases slightly from the       trough on Monday and reaches the top on Friday, then decreases sharply on        Saturday.
+    is the exception here. For Alcohol, the figure increases slightly
+    from the trough on Monday and reaches the top on Friday, then
+    decreases sharply on Saturday.
 
-b.  The other departments have similar pattern. The figures decrease from the top     on Sunday, and then start increasing on Friday.\
+b.  The other departments have similar pattern. The figures decrease
+    from the top on Sunday, and then start increasing on Friday.\
     <br>
 
 ### **PCA**
 
-We analyze the association between the numbers of orders from different departments. 
+We analyze the association between the numbers of orders from different
+departments.
 
-**PCA by department**
-PCA explains the similarity of variables. There are two metrics which are correlation(scaled) and covariance(not scaled). 
-In our analysis, we focus on the relationship between the number of order from each department and day-of-week that users purchase. Thus, we will focus our PCA analysis on non-scale, i.e. using covariance. However, it would be interesting to see the differences of the results between scale and non-scaled PCAs as well, so we will also perform the PCA analysis with correlations. 
+**PCA by department** PCA explains the similarity of variables. There
+are two metrics which are correlation(scaled) and covariance(not
+scaled). In our analysis, we focus on the relationship between the
+number of order from each department and day-of-week that users
+purchase. Thus, we will focus our PCA analysis on non-scale, i.e. using
+covariance. However, it would be interesting to see the differences of
+the results between scale and non-scaled PCAs as well, so we will also
+perform the PCA analysis with correlations.
 
+***Non-scaled PCA (Covariance)*** We observe that the first and second
+components explain 46.68% and 13.76% of variance of the data. Referring
+to the rule of thumb which selects the number of dimensions that allow
+to explain at least 75% of the variation, therefore comp 1 - comp 5 are
+selected and around 79.8% of variance of the data are explained.
 
-***Non-scaled PCA (Covariance)***
-We observe that the first and second components explain 46.68% and 13.76% of variance of the data. Referring to the rule of thumb which selects the number of dimensions that allow to explain at least 75% of the variation, therefore comp 1 - comp 5 are selected and around 79.8% of variance of the data are explained.
-
-Our finding:
-1. Produce has the highest variation. Also, it is highly positively correlated with Dim1 and negatively correlated with Dim2
-2. The other departments including the second to sixth largest variance variables(Dairy egg, Snacks, Frozen, Beverages and Pantry) are positively correlated with Dim1 and Dim2.
+Our finding: 1. Produce has the highest variation. Also, it is highly
+positively correlated with Dim1 and negatively correlated with Dim2 2.
+The other departments including the second to sixth largest variance
+variables(Dairy egg, Snacks, Frozen, Beverages and Pantry) are
+positively correlated with Dim1 and Dim2.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 data_pca_department <- user_purchases %>% 
@@ -303,7 +319,12 @@ pca_department$var$coord
 ```
 
 ***Scaled PCA (Correlation)***
-We find that the first and second components can explain only 13.6% and 6.6% respectively, and we need 15 components (out of 21) to explain 75% of the variation. This means that correlations between departments are very low and we cannot use PCA to reduce the dimensions of the scaled data.
+
+We find that the first and second components can explain only 13.6% and
+6.6% respectively, and we need 15 components (out of 21) to explain 75%
+of the variation. This means that correlations between departments are
+very low and we cannot use PCA to reduce the dimensions of the scaled
+data.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -312,8 +333,3 @@ pca_department <- PCA(data_pca_department[,-1], scale.unit = TRUE)
 pca_department$eig
 #pca_department$var$coord
 ```
-
-
-
-
-

@@ -1,48 +1,21 @@
-## **Supervised Learning**
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
 
+## **Supervised Learning**
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 source(here::here("scripts/setup.R"))
-
-aisles <- read.csv(here::here("data/aisles.csv"), header = TRUE)
-departments <- read.csv(here::here("data/departments.csv"), header = TRUE)
-products <- read.csv(here::here("data/products.csv"), header = TRUE)
-order_products_train <- read.csv(here::here("data/order_products__train.csv"), header = TRUE)
-orders <- read.csv(here::here("data/orders.csv"), header = TRUE)
-
-user_purchases <- orders %>%
-  filter(eval_set == "train") %>%
-  left_join(order_products_train, by = "order_id") %>%
-  left_join(products, by = "product_id") %>%
-  left_join(aisles, by = c("aisle_id")) %>%
-  left_join(departments, by = c("department_id")) %>%
-  select(order_id, order_dow, order_hour_of_day, product_id, aisle_id, aisle,
-         department)
-
-
 ```
 
 ### **Data Preparation for Models**
 
 Before starting applying the models to the data, we have decided to aggregate the column called `id_orders` by department, so we could know the number of products purchased by department. In addition, we have considered to keep the column `order_dow`, to identify on which day of the week an order was purchased.
 
-After creating this new table, we converted the column `order_dow` from numeric(int) to categorical values(factor), and to understand better this values, we change the integer values to the name of the day of the week. For example: The value `0` was transformed to `Sunday`, `1` to `Monday`, `2` to `Tuesday`, and so on. 
+After creating this new table, we converted the column `order_dow` from numeric(int) to categorical values(factor), and to understand better this values, we change the integer values to the name of the day of the week. For example: The value "0" was transformed to "Sunday", "1" to "Monday", "2" to "Tuesday", and so on. 
 
 ```{r echo=FALSE, message=FALSE}
-#Preparation for the analysis
-orders <- orders %>%
-  filter(eval_set == "train") %>%
-  select(order_id, order_dow, order_hour_of_day)
-
-department_wide <- user_purchases %>%
-  group_by(order_id, department) %>%
-  summarise(product_num = n()) %>%
-  pivot_wider(names_from = "department", values_from = "product_num") %>%
-  left_join(orders, by = "order_id") %>%
-  relocate(order_dow, .before = `canned goods`) %>%
-  relocate(order_hour_of_day, .before = `canned goods`)
-
-department_wide[is.na(department_wide)] <- 0
-
 # Selecting only the meaningful columns for the models
 dep_data <- department_wide
 data_by_day <- dep_data %>%
@@ -74,13 +47,12 @@ Our goal is to determine which day of the week a given order will be placed. Due
 * One day of the week - Balanced data with Sub-sampling and Cross-Validation
 * Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation
 
-> One day of the week - Unbalanced data
+>##### **One day of the week - Unbalanced data**
 
 For this approach we want to measure the accuracy of the model with the unbalanced data. In addition, it will be interesting to see which departments were considered the best to split the data into days of the week to later be compared to a balanced data with cross-validation (second approach). 
 
 
-```{r echo=FALSE, message=FALSE}
-
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Separate our data into Training set and Test set
 set.seed(12345) # for reproducibility
 index.tr <- createDataPartition(y = data_by_day$order_dow, p= 0.8,list = FALSE)
@@ -99,17 +71,22 @@ m1_tree_byday <- rpart(order_dow ~ ., method= "class",
 m1_tree_byday_pruned <- prune(m1_tree_byday, cp=0.00045)
 
 # Plot the pruned tree
-rpart.plot(m1_tree_byday_pruned, type = 5, digits = 3, fallen.leaves = F,
-           tweak=1.5 )
+prp(m1_tree_byday_pruned, 
+    main = "Department Tree per day of the week - Unbalanced data",  
+    type = 3, extra = 4,  cex= 0.7, digits = 3, leaf.round = 9,
+    shadow.col = "gray", branch.col = "gray", branch.lwd = 2, cex.main = 1,
+    split.box.col= "aquamarine2", round=1, border.col="chocolate1")
+
 #rpart.rules(m1_tree_byday_pruned, cover = T)
 ```
 
-According to the pruned tree, we observe that the department **produce** have the most relevance within the departments, this could be influenced by the fact that this department has the highest number of products purchased in our data set. Furthermore, the tree show us that with an amount of products purchased higher or equal than 3, the model will classify the day of the week as Sunday (*44.9% of the data fall into this category*), if it is lower than 3 the tree will split into another node containing the **frozen** department.
+According to the pruned tree, we observe that the department **produce** have the most relevance within the departments, this could be influenced by the fact that this department has the highest number of products purchased in our data set. Furthermore, the tree show us that with an amount of products purchased higher or equal than 3, the model will classify the day of the week as Sunday, if it is lower than 3 the tree will split into another node containing the **frozen** department.
 
 Likewise, the same procedure will be consider for this node and the following, they will start from the previous node and will try to minimize the impurity at each split. It should be noted that we cannot observed on the terminal nodes all the days of the week, because of the way in which the trees are generated. For the same reason, we expect on the prediction of the test set, a prediction value of "0" on the days of the week different to Sunday and Monday.
 
 ```{r echo=FALSE, message=FALSE}
 # Predicting
+set.seed(12345)
 m1_tree_byday_pruned_pred <- predict(m1_tree_byday_pruned, newdata = df.te, type="class")
 
 
@@ -117,9 +94,9 @@ m1_tree_byday_pruned_pred <- predict(m1_tree_byday_pruned, newdata = df.te, type
 confusionMatrix(data=as.factor(m1_tree_byday_pruned_pred), reference = df.te$order_dow)
 ```
 
-As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get cero. Overall, the accuracy of this model is low with a score of **0.22**, meaning that the model have `(0.22 - (1/7))= 0.077` around **8%** of accuracy classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
+As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get cero. Overall, the accuracy of this model is low with a score of **0.21**, meaning that the model have (`(0.21 - (1/7))= 0.077`) around **8%** of accuracy classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
 
-> One day of the week - Balanced data with Sub-sampling and Cross-Validation
+>#####**One day of the week - Balanced data with Sub-sampling and Cross-Validation**
 
 Now for this approach, we will balanced the data with sub-sampling and make the overall score more robust by applying to the model a cross-validation technique, this will help us to find the best set of hyperparameters.
 
@@ -136,14 +113,20 @@ m2_tree_byday <- caret::train(order_dow ~ .,
                                                   sampling="down"))
 
 # Plot the Tree
-rpart.plot(m2_tree_byday$finalModel, type = 5, digits = 3, fallen.leaves = F,
-           tweak=1.5)
+prp(m2_tree_byday$finalModel, 
+    main = "Department Tree per day of the week - Balanced data with CV",  
+    type = 3, extra = 4,  cex= 0.7, digits = 3, leaf.round = 9,
+    shadow.col = "gray", branch.col = "gray", branch.lwd = 2, cex.main = 1,
+    split.box.col= "aquamarine2", round=1, border.col="chocolate1")
+```
+
+```{r echo=FALSE, message=FALSE}
 rpart.rules(m2_tree_byday$finalModel, cover = T)
 ```
 
 The left column (*.outcome*) of the rules show the day that was selected for the terminal node (*the one with the highest probability*) and next to it the probability of each day of the week for the department selected. In this case for the last rule it seems that Wednesday and Thursday have the same probability because of the rounding, but Thursday its **0.3%** above Wednesday, this can be seen from the tree plot.
 
-The rightmost column (*cover*) gives the percentage of observations in each rule. The first rule says that Saturday will be chosen when the department produce is lower than 3 and higher or equal than 1 with a probability of **18.2%**. 
+The rightmost column (*cover*) gives the percentage of observations in each rule. The first rule says that Saturday will be chosen when the department **produce** is lower than 3 and higher or equal than 1 with a probability of **18%**. Then we can look at the results of the model in the Confusion Matrix.
 
 ```{r echo=FALSE, message=FALSE}
 # Apply Model to the test dataset
@@ -154,13 +137,15 @@ m2_tree_byday_pred <- predict(m2_tree_byday, newdata=df.te)
 confusionMatrix(data=as.factor(m2_tree_byday_pred), reference = df.te$order_dow)
 ```
 
-From the confusion matrix we observe a better result between the sensitivity and specificity across the classes, if we compare the previous model with this one, we notice that on the class Sunday the values of the sensitivity changed from **0.882** to **0.545**, and for the specificity from **0.194** to **0.576**. As expected the Accuracy has decreased from **0.211** to **0.195**, meaning that the model have `(0.195 - (1/7))= 0.052` around **5%** of accuracy per day of the week, but the Balanced Accuracy is better. This model would be preferred than the one used with unbalanced data.
+From the confusion matrix we observe a better result between the sensitivity and specificity across the classes, if we compare the previous model with this one, we notice that on the class Sunday the values of the sensitivity changed from **0.882** to **0.545**, and for the specificity from **0.194** to **0.576**. As expected, the Accuracy has decreased from **0.211** to **0.195**, meaning that the model have (`(0.195 - (1/7))= 0.052`) around **5%** of accuracy per day of the week, but the Balanced Accuracy is better. This model would be preferred than the one used with unbalanced data.
 
-> Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation
+>#####**Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation**
 
 For the Final approach we transformed the levels of the column `order_dow` into two, one for the days during the week and the other for the weekend. On top of that we balanced our levels "weekday" and "weekend" and consider a Cross-Validation to train the model.
 
-```{r echo=FALSE, message=FALSE}
+We try to plot the final tree computed by the model, but it was not possible to interpret it, due to the overlapping nodes shown in the graph, but we could see that the departments **produce, frozen** and **meat.seafood**, were among the first splits.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Prepare Data
 dep_data <- department_wide
 data_by_day <- dep_data %>%
@@ -203,81 +188,79 @@ m3_tree_group <- caret::train(Group ~ .,
                                                   sampling="down"))
 
 # Plot the Tree
-rpart.plot(m3_tree_group$finalModel, type = 3, digits = 2, fallen.leaves = FALSE, cex = 0.5)
-```
+#rpart.plot(m3_tree_group$finalModel, type = 5, digits = 3, fallen.leaves = T,
+#           branch.col = "gray", branch.lwd = 3, cex= 0.7, leaf.round = 9,
+#           shadow.col = "gray",
+#           main = "Department Tree during the week and weekend - Balanced data and CV", 
+#           cex.main = 1)
 
-
-```{r echo=FALSE, message=FALSE}
 # Apply Model to the test dataset
 set.seed(12345)
 m3_tree_group_pred <- predict(m3_tree_group, newdata=df.te)
-table(Pred= m3_tree_group_pred, Obs=df.te$Group)
 
 # Measure the accuracy of the prediction
-confusionMatrix(data=as.factor(m3_tree_group_pred), reference = df.te$Group)
-
-library(caret)
-library(cvms)
-library(patchwork)
-table_3 <- as_tibble(table(tibble(Actual = df.te$Group,
-                  Prediction = m3_tree_group_pred)))
-
-plot_confusion_matrix(table_3, 
-                      target_col = "Actual", 
-                      prediction_col = "Prediction",
-                      counts_col = "n",
-                      palette = "Oranges") +
-  ggplot2::labs(x = "Actual", y = "Prediction")
-
-draw_confusion_matrix <- function(cm) {
+draw_confusion_matrix1 <- function(cm) {
+  
+  layout(matrix(c(1,1,2)))
+  par(mar=c(2,2,2,2))
+  plot(c(100, 345), c(300, 450), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
+  title('CONFUSION MATRIX', cex.main=2)
+  
+  # create the matrix 
+  rect(150, 430, 240, 370, col='#3F97D0')
+  text(195, 440, 'Weekday', cex=1.2, font=14)
+  rect(250, 430, 340, 370, col='#F7AD50')
+  text(295, 440, 'Weekend', cex=1.2, font=14)
+  text(125, 370, 'Predicted', cex=1.3, srt=90, font=15)
+  text(245, 450, 'Actual', cex=1.3, font=15)
+  rect(150, 305, 240, 365, col='#F7AD50')
+  rect(250, 305, 340, 365, col='#3F97D0')
+  text(140, 400, 'Weekday', cex=1.2, srt=90, font=14)
+  text(140, 335, 'Weekend', cex=1.2, srt=90, font=14)
+  
+  # add in the cm results 
+  res <- as.numeric(cm$table)
+  text(195, 400, res[1], cex=1.6, font=2, col='white')
+  text(195, 335, res[2], cex=1.6, font=2, col='white')
+  text(295, 400, res[3], cex=1.6, font=2, col='white')
+  text(295, 335, res[4], cex=1.6, font=2, col='white')
   
   # add in the specifics 
-  plot(c(70, 0), c(70, 0), type = "n", xlab="", ylab="", xaxt='n', yaxt='n', font=15)
+  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS",
+       xaxt='n', yaxt='n')
+  text(10, 85, names(cm$byClass[1]), cex=1.2, font=15)
+  text(10, 65, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
+  text(30, 85, names(cm$byClass[2]), cex=1.2, font=15)
+  text(30, 65, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
+  text(50, 85, names(cm$byClass[5]), cex=1.2, font=15)
+  text(50, 65, round(as.numeric(cm$byClass[5]), 3), cex=1.2)
+  text(70, 85, names(cm$byClass[6]), cex=1.2, font=15)
+  text(70, 65, round(as.numeric(cm$byClass[6]), 3), cex=1.2)
+  text(90, 85, names(cm$byClass[7]), cex=1.2, font=15)
+  text(90, 65, round(as.numeric(cm$byClass[7]), 3), cex=1.2)
   
   # add in the accuracy information 
-  text(35, 60, names(cm$overall[1]), cex=1.3, font=15)
-  text(35, 50, round(as.numeric(cm$overall[1]), 3), cex=1.4)
-  text(35, 40, names(cm$overall[2]), cex=1.3, font=15)
-  text(35, 30, round(as.numeric(cm$overall[2]), 3), cex=1.4)
-  text(35, 20, names(cm$byClass[11]), cex=1.3, font=15)
-  text(35, 10, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
-
+  text(20, 35, names(cm$overall[1]), cex=1.5, font=15)
+  text(20, 15, round(as.numeric(cm$overall[1]), 3), cex=1.4)
+  text(50, 35, names(cm$overall[2]), cex=1.5, font=15)
+  text(50, 15, round(as.numeric(cm$overall[2]), 3), cex=1.4)
+  text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
+  text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
 cm<-confusionMatrix(m3_tree_group_pred, df.te$Group)
-draw_confusion_matrix(cm)
+draw_confusion_matrix1(cm)
 
 ```
-Confusion Matrix and Statistics
 
-          Reference
-Prediction weekday weekend
-   weekday    8740    3905
-   weekend    8228    5368
-                                        
-               Accuracy : 0.538         
-                 95% CI : (0.532, 0.544)
-    No Information Rate : 0.647         
-    P-Value [Acc > NIR] : 1             
-                                        
-                  Kappa : 0.085         
-                                        
- Mcnemar's Test P-Value : <2e-16        
-                                        
-            Sensitivity : 0.515         
-            Specificity : 0.579         
-         Pos Pred Value : 0.691         
-         Neg Pred Value : 0.395         
-             Prevalence : 0.647         
-         Detection Rate : 0.333         
-   Detection Prevalence : 0.482         
-      Balanced Accuracy : 0.547         
-                                        
-       'Positive' Class : weekday 
-       
-       
+The results of the confusion matrix show us a well balanced data from what we can observed in the sensitivity and specificity. The Accuracy of the model is similar comparing it with the other two approaches, the model have  (`(0.538 - (1/2))= 0.038`) just below **4%** of accuracy. Overall, all different approaches have a low score at predicting the day of the week based on the department purchases from previous orders. 
+
 ### **Random Forest**
 
-> Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation
+Random Forest (RF) are algorithms of a set of decision trees that will produce a final prediction with the average outcome of the set of trees considered (*user can define the amount of trees and the number of variables for each node*). One of the reasons that we decided to test this method is because RF are considered to be more stable than Decision Trees; more trees better performance, but certain advantages come at a price. RF slow down the computation speed and cannot be visualize, however, we will look at the results for later comparison (Saikumar Talari, 2022).
+
+> **Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation**
+
+For this method we will consider the same approach as the last one of Classification Tree. We faced some computation speed problems while running the model, for that reason we decided to considered only 10,000 orders to reduce the waiting time. 
 
 ```{r echo=FALSE, message=FALSE}
 
@@ -303,71 +286,211 @@ m4_rf_group <- caret::train(Group ~ .,
                                                 sampling = "down"))
 # It takes more than 3 min to run
 
-varImp(m4_rf_group)
-
 # Apply Model to the test dataset
 set.seed(12345)
 m4_rf_group_pred <- predict(m4_rf_group, newdata=df.te)
 
 # Measure the accuracy of the prediction
-confusionMatrix(data=as.factor(m4_rf_group_pred), reference = df.te$Group)
+draw_confusion_matrix2 <- function(cm) {
+  
+  layout(matrix(c(1,1,2)))
+  par(mar=c(2,2,2,2))
+  plot(c(100, 345), c(300, 450), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
+  title('CONFUSION MATRIX', cex.main=2)
+  
+  # create the matrix 
+  rect(150, 430, 240, 370, col='#3F97D0')
+  text(195, 440, 'Weekday', cex=1.2, font=14)
+  rect(250, 430, 340, 370, col='#F7AD50')
+  text(295, 440, 'Weekend', cex=1.2, font=14)
+  text(125, 370, 'Predicted', cex=1.3, srt=90, font=15)
+  text(245, 450, 'Actual', cex=1.3, font=15)
+  rect(150, 305, 240, 365, col='#F7AD50')
+  rect(250, 305, 340, 365, col='#3F97D0')
+  text(140, 400, 'Weekday', cex=1.2, srt=90, font=14)
+  text(140, 335, 'Weekend', cex=1.2, srt=90, font=14)
+  
+  # add in the cm results 
+  res <- as.numeric(cm$table)
+  text(195, 400, res[1], cex=1.6, font=2, col='white')
+  text(195, 335, res[2], cex=1.6, font=2, col='white')
+  text(295, 400, res[3], cex=1.6, font=2, col='white')
+  text(295, 335, res[4], cex=1.6, font=2, col='white')
+  
+  # add in the specifics 
+  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS",
+       xaxt='n', yaxt='n')
+  text(10, 85, names(cm$byClass[1]), cex=1.2, font=15)
+  text(10, 65, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
+  text(30, 85, names(cm$byClass[2]), cex=1.2, font=15)
+  text(30, 65, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
+  text(50, 85, names(cm$byClass[5]), cex=1.2, font=15)
+  text(50, 65, round(as.numeric(cm$byClass[5]), 3), cex=1.2)
+  text(70, 85, names(cm$byClass[6]), cex=1.2, font=15)
+  text(70, 65, round(as.numeric(cm$byClass[6]), 3), cex=1.2)
+  text(90, 85, names(cm$byClass[7]), cex=1.2, font=15)
+  text(90, 65, round(as.numeric(cm$byClass[7]), 3), cex=1.2)
+  
+  # add in the accuracy information 
+  text(20, 35, names(cm$overall[1]), cex=1.5, font=15)
+  text(20, 15, round(as.numeric(cm$overall[1]), 3), cex=1.4)
+  text(50, 35, names(cm$overall[2]), cex=1.5, font=15)
+  text(50, 15, round(as.numeric(cm$overall[2]), 3), cex=1.4)
+  text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
+  text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
+}
+cm <-confusionMatrix(m4_rf_group_pred, df.te$Group)
+draw_confusion_matrix2(cm)
+```
 
+As expected, the Accuracy of the model is higher than the Classification Tree as well as Cohen's Kappa and the balanced accuracy. This model would be preferred at predicting "weekday" and "weekend" as it has better results.
+
+### **Multinomial Logistic Regression**
+
+Our goal is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression.
+
+#####  1.Train and Test set
+
+```{r}
+department_wide$order_dow <- as.factor(department_wide$order_dow)
+department_wide$order_hour_of_day <- as.factor(department_wide$order_hour_of_day)
+set.seed(12345)
+insta.index <- sample(x=1:nrow(department_wide), size=0.8*nrow(department_wide), replace=FALSE)
+insta.tr <- department_wide[insta.index,]
+insta.te <- department_wide[-insta.index,]
 ```
 
 
-# Computed with the whole dataset (but it takes 1 hr to run, results are not a big diff)
-Confusion Matrix and Statistics
+#####  2.Build the Model
 
-          Reference
-Prediction weekday weekend
-   weekday    9583    4338
-   weekend    7385    4935
-                                        
-               Accuracy : 0.553         
-                 95% CI : (0.547, 0.559)
-    No Information Rate : 0.647         
-    P-Value [Acc > NIR] : 1             
-                                        
-                  Kappa : 0.09          
-                                        
- Mcnemar's Test P-Value : <2e-16        
-                                        
-            Sensitivity : 0.565         
-            Specificity : 0.532         
-         Pos Pred Value : 0.688         
-         Neg Pred Value : 0.401         
-             Prevalence : 0.647         
-         Detection Rate : 0.365         
-   Detection Prevalence : 0.531         
-      Balanced Accuracy : 0.548         
-                                        
-       'Positive' Class : weekday 
-       
-### Here the results are diferent but I don't think is that relevant
-  only 20 most important variables shown (out of 21)
+We use the day 0 as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
 
-                Overall
-produce          100.00
-dairy.eggs        69.10
-snacks            59.47
-frozen            55.58
-beverages         54.57
-pantry            46.84
-canned.goods      37.59
-dry.goods.pasta   34.07
-bakery            33.49
-deli              33.24
-household         32.87
-breakfast         29.04
-meat.seafood      27.77
-personal.care     24.42
-babies            19.31
-international     16.21
-missing           12.07
-pets               7.41
-alcohol            5.65
-other              1.69
+```{r}
+library(nnet)
+insta.tr$order_dow2 <- relevel(as.factor(insta.tr$order_dow),ref = "0")
+train <- insta.tr[4:25]
+insta_multiglm <- multinom(order_dow2~.,data=train) 
+```
+
+#####  3.Check the Score of the Model
+
+```{r}
+test <- insta.te[3:24]
+insta_pred <- predict(insta_multiglm,newdata = test)
+confusionMatrix(factor(insta_pred),factor(insta.te$order_dow))
+```
+
+#### improve the model
+
+According to the confusion matrix, the accurancy is low and there is a big difference between sensitivity and specificity. We try to balance the data and use a cross-validation to improve the model accurancy.
+
+##### 1.balance the data
+
+Check the unbalance of classes frequencies.
+```{r}
+table(insta.tr$order_dow2)
+```
+
+##### 2.subsampling and cross-validation
+
+We try the cross-validation with the subsampling data, but the data set is big and it takes a very long time to run it so we decide not to include the cross-validation.
+
+```{r}
+#insta_multiglm_new <- caret::train(order_dow2~.,data=train,
+#                                   method="multinom",
+#                                   trControl=trainControl(method = "cv",
+#                                                          number = 10,
+#                                                         sampling = "down"))
+```
+
+
+subsampling the data without cross-validation
+
+```{r}
+n.3 <- min(table(insta.tr$order_dow2)) ## 12627
+
+insta.tr.0 <- filter(insta.tr, order_dow2=="0") ## the "3" cases
+insta.tr.1 <- filter(insta.tr, order_dow2=="1")
+insta.tr.2 <- filter(insta.tr, order_dow2=="2")
+insta.tr.3 <- filter(insta.tr, order_dow2=="3")
+insta.tr.4 <- filter(insta.tr, order_dow2=="4")
+insta.tr.5 <- filter(insta.tr, order_dow2=="5")
+insta.tr.6 <- filter(insta.tr, order_dow2=="6")
+
+index.0 <- sample(size=n.3, x=1:nrow(insta.tr.0), replace=FALSE) 
+index.1 <- sample(size=n.3, x=1:nrow(insta.tr.1), replace=FALSE)
+index.2 <- sample(size=n.3, x=1:nrow(insta.tr.2), replace=FALSE)
+index.4 <- sample(size=n.3, x=1:nrow(insta.tr.4), replace=FALSE)
+index.5 <- sample(size=n.3, x=1:nrow(insta.tr.5), replace=FALSE)
+index.6 <- sample(size=n.3, x=1:nrow(insta.tr.6), replace=FALSE)
+
+insta.tr.subs <- data.frame(rbind(insta.tr.3, insta.tr.0[index.0,],
+                               insta.tr.1[index.1,],insta.tr.2[index.2,],
+                               insta.tr.4[index.4,],insta.tr.5[index.5,],
+                               insta.tr.6[index.6,])) 
+insta.tr.subs <- insta.tr.subs %>% rename("canned goods"="canned.goods",
+                                    "dairy eggs"="dairy.eggs",
+                      "meat seafood"="meat.seafood","personal care"="personal.care",
+                      "dry goods pasta"="dry.goods.pasta"
+                      )
+
+table(insta.tr.subs$order_dow2)
+```
+
+```{r}
+train_sub <- insta.tr.subs[3:25]
+insta_multiglm_bal <- multinom(order_dow2~.,data=train_sub)
+```
+
+From the confusion matrix report we can notice that the balanced accurancy of each class is higher and the kappa of the model is also high.
+
+```{r}
+test_sub <- insta.te[3:24]
+insta_pred_sub <- predict(insta_multiglm_bal,newdata = test_sub)
+confusionMatrix(factor(insta_pred_sub),factor(insta.te$order_dow))
+```
+
+### **Logistic Regression**
+
+In order to further improve our model quality, we think about aggregating the classes of the day of week. Usually the buying behavior is different between weekday and weekend. So we separate the day of week into two classes weekday and weekend.
+
+Now the outcome variable has only two categories so we can use the binomial logistic regression.
+
+```{r}
+department_WW <- department_wide %>% 
+  mutate(order_ww=ifelse(order_dow %in% c(0,6) , "weekend", "weekday"))
+department_WW$order_dow <- as.factor(department_WW$order_ww)
+insta.WW.tr <- department_WW[insta.index,]
+insta.WW.te <- department_WW[-insta.index,]
+```
+
+
+```{r}
+train.SS <- insta.WW.tr[4:25]
+insta_glm <- caret::train(order_ww~.,data = train.SS,
+                                   method="glm",
+                                   trControl=trainControl(method = "cv",
+                                                          number = 10,
+                                                          summaryFunction = twoClassSummary, classProbs = TRUE, savePredictions = T,
+                                                          sampling = "down"))
+```
+
+According to the confusion matrix the balanced accuracy and kappa are higher.
+
+```{r}
+test_SS <- insta.WW.te[4:25]
+insta.glm_pred <- predict(insta_glm,newdata = test_SS)
+confusionMatrix(factor(insta.glm_pred),factor(insta.WW.te$order_ww))
+```
+
+
+
+
+
+
 
 ## References
 
 Ivo Bernardo, Classification Decision Trees, Easily Explained, Aug 30, 2021: https://towardsdatascience.com/classification-decision-trees-easily-explained-f1064dde175e
+
+Saikumar Talari, Random Forest® vs Decision Tree: Key Differences, February 18, 2022: https://www.kdnuggets.com/2022/02/random-forest-decision-tree-key-differences.html#:~:text=The%20critical%20difference%20between%20the,work%20according%20to%20the%20output.
