@@ -3,55 +3,49 @@ title: "analysis-ting"
 output: html_document
 ---
 
-## supervised learning methods
 
 ### Model: Multinomial logistic regression
 
-Our goal is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression.
+#### One day of the week - Unbalanced data
+Multinomial logistic regression is a classification method that generalizes logistic regression to multiclass problems, i.e. with more than two possible discrete outcomes. Like binary logistic regression, multinomial logistic regression uses maximum likelihood estimation to evaluate the probability of categorical membership.
 
-#### 1.train and test set
+Our first approach is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression problem.
+
 ```{r}
-department_wide$order_dow <- as.factor(department_wide$order_dow)
-department_wide$order_hour_of_day <- as.factor(department_wide$order_hour_of_day)
 set.seed(12345)
-insta.index <- sample(x=1:nrow(department_wide), size=0.8*nrow(department_wide), replace=FALSE)
-insta.tr <- department_wide[insta.index,]
-insta.te <- department_wide[-insta.index,]
+insta.index <- sample(x=1:nrow(data_by_day), size=0.8*nrow(data_by_day), replace=FALSE)
+insta.tr <- data_by_day[insta.index,]
+insta.te <- data_by_day[-insta.index,]
 ```
 
 
-#### 2.build the model
+We select the day 0 as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
 
-We use the day 0 as the reference level. To build the model, we use the number of products in each deaprtment of the order as explantory variables.
 ```{r}
 library(nnet)
-insta.tr$order_dow2 <- relevel(as.factor(insta.tr$order_dow),ref = "0")
-train <- insta.tr[4:25]
-insta_multiglm <- multinom(order_dow2~.,data=train) 
+insta.tr$order_dow <- relevel(as.factor(insta.tr$order_dow),ref = "Sunday")
+insta_multiglm <- multinom(order_dow~.,data=insta.tr) 
 ```
 
-#### 3.check the score of the model
+
 
 ```{r}
-test <- insta.te[3:24]
-insta_pred <- predict(insta_multiglm,newdata = test)
+insta_pred <- predict(insta_multiglm,newdata = insta.te)
 confusionMatrix(factor(insta_pred),factor(insta.te$order_dow))
 ```
 
-#### improve the model
 
-According to the confusion matrix, the accurancy is low and there is a big difference between sensitivity and specificity. We try to balance the data and use a cross-validation to improve the model accurancy.
+According to the confusion matrix, the accuracy(**0.209**) is low and there is a big difference between sensitivity and specificity in each class. For example, the sensitivity of class Friday is **0.03** while the specificity of class Friday is **0.98**. Also the kappa(**0.008**) is very small which means the observed accuracy is only a little higher than the accuracy that one would expect from a random model. We try to balance the data and use a cross-validation to improve the model accuracy.
 
-##### 1.balance the data
+#### One day of the week - balanced data with cross-validation
 
-Check the unbalance of classes frequencies.
+Before balancing the data, We need to check the frequency of each class. The class Wednesday has the smallest frequency(**12627**). We will balance data by sub-sampling according to the frequency of class Wednesday. 
 ```{r}
-table(insta.tr$order_dow2)
+table(insta.tr$order_dow)
 ```
 
-##### 2.subsampling and cross-validation
 
-We try the cross-validation with the subsampling data, but the data set is big and it takes a very long time to run it so we decide not to include the cross-validation.
+We try the cross-validation with the sub-sampling data by using the train function of caret package, but the data set is too big and it takes a very long time to run it so we decide not to include the cross-validation.
 ```{r}
 #insta_multiglm_new <- caret::train(order_dow2~.,data=train,
 #                                   method="multinom",
@@ -61,17 +55,17 @@ We try the cross-validation with the subsampling data, but the data set is big a
 ```
 
 
-subsampling the data without cross-validation
+We only sub-sample the data and not do cross-validation. Now every class has the same frequancy(**12627**).
 ```{r}
-n.3 <- min(table(insta.tr$order_dow2)) ## 12627
+n.3 <- min(table(insta.tr$order_dow)) ## 12627
 
-insta.tr.0 <- filter(insta.tr, order_dow2=="0") ## the "3" cases
-insta.tr.1 <- filter(insta.tr, order_dow2=="1")
-insta.tr.2 <- filter(insta.tr, order_dow2=="2")
-insta.tr.3 <- filter(insta.tr, order_dow2=="3")
-insta.tr.4 <- filter(insta.tr, order_dow2=="4")
-insta.tr.5 <- filter(insta.tr, order_dow2=="5")
-insta.tr.6 <- filter(insta.tr, order_dow2=="6")
+insta.tr.0 <- filter(insta.tr, order_dow=="Sunday") ## the "3" cases
+insta.tr.1 <- filter(insta.tr, order_dow=="Monday")
+insta.tr.2 <- filter(insta.tr, order_dow=="Tuesday")
+insta.tr.3 <- filter(insta.tr, order_dow=="Wednesday")
+insta.tr.4 <- filter(insta.tr, order_dow=="Thursday")
+insta.tr.5 <- filter(insta.tr, order_dow=="Friday")
+insta.tr.6 <- filter(insta.tr, order_dow=="Saturday")
 
 index.0 <- sample(size=n.3, x=1:nrow(insta.tr.0), replace=FALSE) 
 index.1 <- sample(size=n.3, x=1:nrow(insta.tr.1), replace=FALSE)
@@ -84,29 +78,29 @@ insta.tr.subs <- data.frame(rbind(insta.tr.3, insta.tr.0[index.0,],
                                insta.tr.1[index.1,],insta.tr.2[index.2,],
                                insta.tr.4[index.4,],insta.tr.5[index.5,],
                                insta.tr.6[index.6,])) 
-insta.tr.subs <- insta.tr.subs %>% rename("canned goods"="canned.goods",
-                                    "dairy eggs"="dairy.eggs",
-                      "meat seafood"="meat.seafood","personal care"="personal.care",
-                      "dry goods pasta"="dry.goods.pasta"
-                      )
-
-table(insta.tr.subs$order_dow2)
+table(insta.tr.subs$order_dow)
 ```
 
+
 ```{r}
-train_sub <- insta.tr.subs[3:25]
-insta_multiglm_bal <- multinom(order_dow2~.,data=train_sub)
+insta.tr.subs$order_dow <- relevel(as.factor(insta.tr.subs$order_dow),ref = "Sunday")
+insta_multiglm_bal <- multinom(order_dow~.,data=insta.tr.subs)
 ```
 
-From the confusion matrix report we can notice that the balanced accurancy of each class is higher and the kappa of the model is also high.
+
 ```{r}
-test_sub <- insta.te[3:24]
-insta_pred_sub <- predict(insta_multiglm_bal,newdata = test_sub)
+insta_pred_sub <- predict(insta_multiglm_bal,newdata = insta.te)
 confusionMatrix(factor(insta_pred_sub),factor(insta.te$order_dow))
 ```
+From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.028** and **0.978** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.118** and **0.897**. The kappa is also higher(from **0.008** to **0.032**) 
 
 ### Model: logistic regression
-In order to further improve our model quality, we think about aggregating the classes of the day of week. Usually the buying behaviour is different between weekday and weekend. So we seperate the day of week into two classes weekday and weekend.
+
+#### Weekdays and Weekend - Balanced data and Cross-Validation
+
+The logistic regression is a regression adapted to binary classification. The basic idea of logistic regression is to use the mechanism already developed for linear regression by modeling the probability pi using a linear predictor function, i.e. a linear combination of the explanatory variables and a set of regression coefficients that are specific to the model at hand but the same for all trials. The linear combination is transformed to a probability using a sigmoid function.
+
+In order to further improve our model quality, we think about aggregating the classes of the day of week. Usually the buying behavior is different between weekday and weekend. So we separate the day of week into two classes weekday and weekend.
 Now the outcome variable has only two categories so we can use the binomial logistic regression.
 
 ```{r}
@@ -127,10 +121,17 @@ insta_glm <- caret::train(order_ww~.,data = train.SS,
                                                           summaryFunction = twoClassSummary, classProbs = TRUE, savePredictions = T,
                                                           sampling = "down"))
 ```
-According to the confusion matrix the balanced accuracy and kappa are higher.
+
+
 ```{r}
 test_SS <- insta.WW.te[4:25]
 insta.glm_pred <- predict(insta_glm,newdata = test_SS)
 confusionMatrix(factor(insta.glm_pred),factor(insta.WW.te$order_ww))
 ```
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.622**) and specificity(**0.472**) is even smaller. Now the kappa is **0.091**, high than the kappa of previous model(**0.032**). 
 
+
+## reference
+
+the definition of Multinomial_logistic_regression:
+https://en.wikipedia.org/wiki/Multinomial_logistic_regression
