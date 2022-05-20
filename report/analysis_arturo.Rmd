@@ -117,7 +117,7 @@ m1_tree_byday_pruned_pred <- predict(m1_tree_byday_pruned, newdata = df.te, type
 confusionMatrix(data=as.factor(m1_tree_byday_pruned_pred), reference = df.te$order_dow)
 ```
 
-As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get cero. Overall, the accuracy of this model is low with an score of **0.22**, meaning that accuracy of the model have `(0.22 - (1/7))= 0.077` around **8%** classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
+As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get cero. Overall, the accuracy of this model is low with a score of **0.22**, meaning that the model have `(0.22 - (1/7))= 0.077` around **8%** of accuracy classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
 
 > One day of the week - Balanced data with Sub-sampling and Cross-Validation
 
@@ -154,10 +154,11 @@ m2_tree_byday_pred <- predict(m2_tree_byday, newdata=df.te)
 confusionMatrix(data=as.factor(m2_tree_byday_pred), reference = df.te$order_dow)
 ```
 
-
-
+From the confusion matrix we observe a better result between the sensitivity and specificity across the classes, if we compare the previous model with this one, we notice that on the class Sunday the values of the sensitivity changed from **0.882** to **0.545**, and for the specificity from **0.194** to **0.576**. As expected the Accuracy has decreased from **0.211** to **0.195**, meaning that the model have `(0.195 - (1/7))= 0.052` around **5%** of accuracy per day of the week, but the Balanced Accuracy is better. This model would be preferred than the one used with unbalanced data.
 
 > Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation
+
+For the Final approach we transformed the levels of the column `order_dow` into two, one for the days during the week and the other for the weekend. On top of that we balanced our levels "weekday" and "weekend" and consider a Cross-Validation to train the model.
 
 ```{r echo=FALSE, message=FALSE}
 # Prepare Data
@@ -203,7 +204,6 @@ m3_tree_group <- caret::train(Group ~ .,
 
 # Plot the Tree
 rpart.plot(m3_tree_group$finalModel, type = 3, digits = 2, fallen.leaves = FALSE, cex = 0.5)
-
 ```
 
 
