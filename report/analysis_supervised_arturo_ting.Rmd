@@ -582,7 +582,7 @@ p4 <- plot(importance_glm)
 
 As we note from this chart the models Classification Tree, Random Forest, and Logistic Regression use the AUC loss to compare the model quality of shuffling different variables. AUC is a synthetic measure of the distance to random model in the ROC curve plot. The larger AUC, the better the model.
 
-According to the feature importance of this three models, the most important department is the products department. As we have seen above in the table of number of purchases per department, the product department is the leading one with almost twice the number of the second one in that table. This could be one of the main reasons why all three models have chosen it as the most relevant. It is important to mention that if we shuffle this variable, the AUC of the model will have the largest loss.
+According to the feature importance of this three models, the most important department is the produce department. As we have seen above in the table of number of purchases per department, the produce department is the leading one with almost twice the number of the second one in that table. This could be one of the main reasons why all three models have chosen it as the most relevant. It is important to mention that if we shuffle this variable, the AUC of the model will have the largest loss.
 
 For the model Multinomial Logistic Regression, we use the Root Mean Square Error(RMSE) to compare the model quality of shuffling different variables. According to the plot, the most important variable is dairy eggs. If we shuffle this variable, the RMSE of the model will have the largest increase.
 
