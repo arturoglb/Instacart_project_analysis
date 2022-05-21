@@ -1,12 +1,7 @@
 ---
-title: "analysis_pca_mandy"
-author: "Manunpat"
-date: '2022-05-12'
-output: html_document
 editor_options: 
-  chunk_output_type: console
   markdown: 
-    wrap: sentence
+    wrap: 72
 ---
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 source(here::here("scripts/setup.R"))
@@ -285,6 +280,20 @@ According to the result from the original data set (without PCA) in the supervis
 
 From the confusion matrix of the hybrid approach, we find that the sensitivity and kappa are higher than the original model (**0.629** and **0.096**), while specificity is marginally lower (**0.470**). Thus, we conclude that we can improve the model using the hybrid supervised/unsupervised approach.
 
-Reference
+
+##  **Conclusions**
+
+
+
+
+
+
+### **References**
+
+[Ivo Bernardo, Classification Decision Trees, Easily Explained, Aug 30, 2021](https://towardsdatascience.com/classification-decision-trees-easily-explained-f1064dde175e)
+
+[Saikumar Talari, Random Forest® vs Decision Tree: Key Differences, February 18, 2022](https://www.kdnuggets.com/2022/02/random-forest-decision-tree-key-differences.html#:~:text=The%20critical%20difference%20between%20the,work%20according%20to%20the%20output.)
+
+[Wikipedia, Multinomial logistic regression, 23 August 2021](https://en.wikipedia.org/wiki/Multinomial_logistic_regression)
 
 S. Walusala W, R. Rimiru, C. Otieno, A hybrid machine learning approach for credit scoring using PCA and logistic regression, International journal of computer, ISSN 2307-4523.

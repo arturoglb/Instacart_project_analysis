@@ -461,10 +461,9 @@ According to the confusion matrix the balanced accuracy is higher and the differ
 
 ### **Variable Importance**
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
-library(e1071)
-library(DALEX)
+Variable importance is a method that provides a measure of the importance of each feature for the model prediction quality. We analyze the variables importance of our 4 models. There are 21 explanatory variables in each of our models and we only show the top 10 most important variables in the plots.
 
+```{r message=FALSE, warning=FALSE, include=FALSE}
 
 x_train1 <- select(df.tr, -order_dow) # by day of the week
 y_train1 <- pull(df.tr, order_dow) #  by day of the week
@@ -524,7 +523,6 @@ importance_glm <- importance_glm %>% head(10)
 
 ```{r echo=FALSE, message=FALSE}
 # Plot the variable importance for the models
-library(ggplot2)
 
 p1 <- plot(importance_tree) 
 p2 <- plot(importance_rf) 
@@ -534,20 +532,17 @@ p4 <- plot(importance_glm)
 
 ```
 
+* **Classification Tree**
 
 
+* **Random forest**
 
 
+* **Multinomial logistic regression** 
 
+For this model, we use root mean square error(RMSE) to compare the model quality of shuffling different variables. According to the plot p3, the most important variable is dairy eggs. If we shuffle this variable, the RMSE of the model will have the largest increase.
 
-##  **Conclusions**
+* **Logistic Regression**
 
+As in model classification tree, in logistic regression we also use the AUC loss to compare the model quality of shuffling different variables. AUC is a synthetic measure of the distance to random model in the ROC curve plot. The larger, the better the model. According to plot p4, the most important variable is produce. If we shuffle this variable, the AUC of the model will have the largest loss.
 
-
-### **References*
-
-[Ivo Bernardo, Classification Decision Trees, Easily Explained, Aug 30, 2021](https://towardsdatascience.com/classification-decision-trees-easily-explained-f1064dde175e)
-
-[Saikumar Talari, Random Forest® vs Decision Tree: Key Differences, February 18, 2022](https://www.kdnuggets.com/2022/02/random-forest-decision-tree-key-differences.html#:~:text=The%20critical%20difference%20between%20the,work%20according%20to%20the%20output.)
-
-[Wikipedia, Multinomial logistic regression, 23 August 2021](https://en.wikipedia.org/wiki/Multinomial_logistic_regression)
