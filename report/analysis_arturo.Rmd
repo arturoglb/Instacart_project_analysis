@@ -159,19 +159,6 @@ For the Final approach we transformed the levels of the column `order_dow` into 
 We try to plot the final tree computed by the model, but it was not possible to interpret it, due to the overlapping nodes shown in the graph, but we could see that the departments **produce, frozen** and **meat.seafood**, were among the first splits.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Prepare Data
-dep_data <- department_wide
-data_by_day <- dep_data %>%
-  as.data.frame() %>%
-  select(-order_id, -order_hour_of_day) 
-data_by_day$order_dow[data_by_day$order_dow == 0] <- "Sunday"
-data_by_day$order_dow[data_by_day$order_dow == 1] <- "Monday"
-data_by_day$order_dow[data_by_day$order_dow == 2] <- "Tuesday"
-data_by_day$order_dow[data_by_day$order_dow == 3] <- "Wednesday"
-data_by_day$order_dow[data_by_day$order_dow == 4] <- "Thursday"
-data_by_day$order_dow[data_by_day$order_dow == 5] <- "Friday"
-data_by_day$order_dow[data_by_day$order_dow == 6] <- "Saturday"
-
 # Grouping days by Week and Weekend
 data_group <- data_by_day %>% mutate(Group =ifelse(
   order_dow == "Sunday"|order_dow == "Saturday", "weekend", "weekday")) %>%
@@ -366,35 +353,28 @@ Multinomial logistic regression is a classification method that generalizes logi
 
 Our first approach is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression problem.
 
-```{r echo=FALSE, message=FALSE}
-set.seed(12345)
-insta.index <- sample(x=1:nrow(data_by_day), size=0.8*nrow(data_by_day), replace=FALSE)
-insta.tr <- data_by_day[insta.index,]
-insta.te <- data_by_day[-insta.index,]
-```
-
 We select the day 0 as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
 
 ```{r echo=FALSE, message=FALSE, include=FALSE}
 library(nnet)
-insta.tr$order_dow <- relevel(as.factor(insta.tr$order_dow),ref = "Sunday")
-insta_multiglm <- multinom(order_dow~.,data=insta.tr) 
+df.tr$order_dow <- relevel(as.factor(df.tr$order_dow),ref = "Sunday")
+insta_multiglm <- multinom(order_dow~.,data=df.tr) 
 ```
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-insta_pred <- predict(insta_multiglm,newdata = insta.te)
-confusionMatrix(factor(insta_pred),factor(insta.te$order_dow))
+insta_pred <- predict(insta_multiglm,newdata = df.te)
+confusionMatrix(factor(insta_pred),df.te$order_dow)
 ```
 
 
-According to the confusion matrix, the accuracy(**0.209**) is low and there is a big difference between sensitivity and specificity in each class. For example, the sensitivity of class Friday is **0.03** while the specificity of class Friday is **0.98**. Also the kappa(**0.008**) is very small which means the observed accuracy is only a little higher than the accuracy that one would expect from a random model. We try to balance the data and use a cross-validation to improve the model accuracy.
+According to the confusion matrix, the accuracy(**0.213**) is low and there is a big difference between sensitivity and specificity in each class. For example, the sensitivity of class Friday is **0.028** while the specificity of class Friday is **0.978**. Also the kappa(**0.01**) is very small which means the observed accuracy is only a little higher than the accuracy that one would expect from a random model. We try to balance the data and use a cross-validation to improve the model accuracy.
 
 > **One day of the week - balanced data with cross-validation**
 
-Before balancing the data, We need to check the frequency of each class. The class Wednesday has the smallest frequency(**12627**). We will balance data by sub-sampling according to the frequency of class Wednesday. 
+Before balancing the data, We need to check the frequency of each class. The class Wednesday has the smallest frequency(**12550**). We will balance data by sub-sampling according to the frequency of class Wednesday. 
 ```{r echo=FALSE, message=FALSE}
-table(insta.tr$order_dow)
+table(df.tr$order_dow)
 ```
 
 
@@ -410,15 +390,15 @@ We try the cross-validation with the sub-sampling data by using the train functi
 
 
 ```{r echo=FALSE, message=FALSE}
-n.3 <- min(table(insta.tr$order_dow)) ## 12627
+n.3 <- min(table(df.tr$order_dow)) ## 12550
 
-insta.tr.0 <- filter(insta.tr, order_dow=="Sunday") ## the "3" cases
-insta.tr.1 <- filter(insta.tr, order_dow=="Monday")
-insta.tr.2 <- filter(insta.tr, order_dow=="Tuesday")
-insta.tr.3 <- filter(insta.tr, order_dow=="Wednesday")
-insta.tr.4 <- filter(insta.tr, order_dow=="Thursday")
-insta.tr.5 <- filter(insta.tr, order_dow=="Friday")
-insta.tr.6 <- filter(insta.tr, order_dow=="Saturday")
+insta.tr.0 <- filter(df.tr, order_dow=="Sunday") ## the "3" cases
+insta.tr.1 <- filter(df.tr, order_dow=="Monday")
+insta.tr.2 <- filter(df.tr, order_dow=="Tuesday")
+insta.tr.3 <- filter(df.tr, order_dow=="Wednesday")
+insta.tr.4 <- filter(df.tr, order_dow=="Thursday")
+insta.tr.5 <- filter(df.tr, order_dow=="Friday")
+insta.tr.6 <- filter(df.tr, order_dow=="Saturday")
 
 index.0 <- sample(size=n.3, x=1:nrow(insta.tr.0), replace=FALSE) 
 index.1 <- sample(size=n.3, x=1:nrow(insta.tr.1), replace=FALSE)
@@ -434,27 +414,20 @@ insta.tr.subs <- data.frame(rbind(insta.tr.3, insta.tr.0[index.0,],
 table(insta.tr.subs$order_dow)
 ```
 
-We only sub-sample the data without applying cross-validation. Now every class has the same frequency(**12627**).
+We only sub-sample the data without applying cross-validation. Now every class has the same frequency(**12550**).
 
 ```{r echo=FALSE, message=FALSE, include=FALSE}
-insta.tr.subs$order_dow <- relevel(as.factor(insta.tr.subs$order_dow),ref = "Sunday")
+insta.tr.subs$order_dow <- relevel(insta.tr.subs$order_dow,ref = "Sunday")
 insta_multiglm_bal <- multinom(order_dow~.,data=insta.tr.subs)
 ```
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-insta.te <- insta.te %>%
-  rename(canned.goods = `canned goods`) %>%
-  rename(dairy.eggs = `dairy eggs`) %>%
-  rename(meat.seafood = `meat seafood`) %>%
-  rename(personal.care = `personal care`) %>%
-  rename(dry.goods.pasta = `dry goods pasta`)
-
-insta_pred_sub <- predict(insta_multiglm_bal,newdata = insta.te)
-confusionMatrix(factor(insta_pred_sub),factor(insta.te$order_dow))
+insta_pred_sub <- predict(insta_multiglm_bal,newdata = df.te)
+confusionMatrix(factor(insta_pred_sub),df.te$order_dow)
 ```
 
-From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.028** and **0.978** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.092** and **0.919**. The kappa is also higher(from **0.008** to **0.032**) 
+From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.028** and **0.978** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.123** and **0.889**. The kappa is also higher(from **0.01** to **0.032**) 
 
 ### **Logistic regression**
 
@@ -484,7 +457,7 @@ insta.glm_pred <- predict(insta_glm,newdata = df.tr2)
 confusionMatrix(factor(insta.glm_pred),factor(df.tr2$Group))
 ```
 
-According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.622**) and specificity(**0.480**) is even smaller. Now the Kappa is **0.098**, higher than Cohen's Kappa previous model(**0.032**). 
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.622**) and specificity(**0.480**) is even smaller. Now the Kappa is **0.098**, higher than Cohen's Kappa previous model(**0.032**), and the Accuracy is **0.573**. Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is higher on the Accuracy by **0.011** and on Cohen's Kappa by **0.002** with almost the same Balanced Accuracy.
 
 ### **Variable Importance**
 
@@ -562,7 +535,16 @@ p4 <- plot(importance_glm)
 ```
 
 
-## References
+
+
+
+
+
+##  **Conclusions**
+
+
+
+### **References*
 
 [Ivo Bernardo, Classification Decision Trees, Easily Explained, Aug 30, 2021](https://towardsdatascience.com/classification-decision-trees-easily-explained-f1064dde175e)
 
