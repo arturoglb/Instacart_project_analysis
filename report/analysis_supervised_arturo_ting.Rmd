@@ -301,11 +301,11 @@ draw_confusion_matrix2 <- function(cm) {
   # create the matrix 
   rect(150, 430, 240, 370, col='#3F97D0')
   text(195, 440, 'Weekday', cex=1.2, font=14)
-  rect(250, 430, 340, 370, col='#F7AD50')
+  rect(250, 430, 340, 370, col='brown2')
   text(295, 440, 'Weekend', cex=1.2, font=14)
   text(125, 370, 'Predicted', cex=1.3, srt=90, font=15)
   text(245, 450, 'Actual', cex=1.3, font=15)
-  rect(150, 305, 240, 365, col='#F7AD50')
+  rect(150, 305, 240, 365, col='brown2')
   rect(250, 305, 340, 365, col='#3F97D0')
   text(140, 400, 'Weekday', cex=1.2, srt=90, font=14)
   text(140, 335, 'Weekend', cex=1.2, srt=90, font=14)
@@ -454,10 +454,63 @@ insta_glm <- caret::train(
 
 ```{r echo=FALSE, message=FALSE}
 insta.glm_pred <- predict(insta_glm,newdata = df.tr2)
-confusionMatrix(factor(insta.glm_pred),factor(df.tr2$Group))
+
+# Measure the accuracy of the prediction
+draw_confusion_matrix3 <- function(cm) {
+  
+  layout(matrix(c(1,1,2)))
+  par(mar=c(2,2,2,2))
+  plot(c(100, 345), c(300, 450), type = "n", xlab="", ylab="", xaxt='n', yaxt='n')
+  title('CONFUSION MATRIX', cex.main=2)
+  
+  # create the matrix 
+  rect(150, 430, 240, 370, col='aquamarine2')
+  text(195, 440, 'Weekday', cex=1.2, font=14)
+  rect(250, 430, 340, 370, col='burlywood2')
+  text(295, 440, 'Weekend', cex=1.2, font=14)
+  text(125, 370, 'Predicted', cex=1.3, srt=90, font=15)
+  text(245, 450, 'Actual', cex=1.3, font=15)
+  rect(150, 305, 240, 365, col='burlywood2')
+  rect(250, 305, 340, 365, col='aquamarine2')
+  text(140, 400, 'Weekday', cex=1.2, srt=90, font=14)
+  text(140, 335, 'Weekend', cex=1.2, srt=90, font=14)
+  
+  # add in the cm results 
+  res <- as.numeric(cm$table)
+  text(195, 400, res[1], cex=1.6, font=2, col='white')
+  text(195, 335, res[2], cex=1.6, font=2, col='white')
+  text(295, 400, res[3], cex=1.6, font=2, col='white')
+  text(295, 335, res[4], cex=1.6, font=2, col='white')
+  
+  # add in the specifics 
+  plot(c(100, 0), c(100, 0), type = "n", xlab="", ylab="", main = "DETAILS",
+       xaxt='n', yaxt='n')
+  text(10, 85, names(cm$byClass[1]), cex=1.2, font=15)
+  text(10, 65, round(as.numeric(cm$byClass[1]), 3), cex=1.2)
+  text(30, 85, names(cm$byClass[2]), cex=1.2, font=15)
+  text(30, 65, round(as.numeric(cm$byClass[2]), 3), cex=1.2)
+  text(50, 85, names(cm$byClass[5]), cex=1.2, font=15)
+  text(50, 65, round(as.numeric(cm$byClass[5]), 3), cex=1.2)
+  text(70, 85, names(cm$byClass[6]), cex=1.2, font=15)
+  text(70, 65, round(as.numeric(cm$byClass[6]), 3), cex=1.2)
+  text(90, 85, names(cm$byClass[7]), cex=1.2, font=15)
+  text(90, 65, round(as.numeric(cm$byClass[7]), 3), cex=1.2)
+  
+  # add in the accuracy information 
+  text(20, 35, names(cm$overall[1]), cex=1.5, font=15)
+  text(20, 15, round(as.numeric(cm$overall[1]), 3), cex=1.4)
+  text(50, 35, names(cm$overall[2]), cex=1.5, font=15)
+  text(50, 15, round(as.numeric(cm$overall[2]), 3), cex=1.4)
+  text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
+  text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
+}
+cm <-confusionMatrix(insta.glm_pred, df.te2$Group)
+draw_confusion_matrix3(cm)
 ```
 
-According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.622**) and specificity(**0.480**) is even smaller. Now the Kappa is **0.098**, higher than Cohen's Kappa previous model(**0.032**), and the Accuracy is **0.573**. Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is higher on the Accuracy by **0.011** and on Cohen's Kappa by **0.002** with almost the same Balanced Accuracy.
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.622**) and specificity(**0.480**) is even smaller. Now the Kappa is **0.098**, higher than Cohen's Kappa previous model(**0.032**), and the Accuracy is **0.573**. 
+
+Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is higher on the Accuracy by **0.011** and on Cohen's Kappa by **0.002** with almost the same Balanced Accuracy. So, we can opt choosing this model over the rest.
 
 ### **Variable Importance**
 
@@ -521,7 +574,7 @@ importance_glm[order(importance_glm[,"dropout_loss"]), ]
 importance_glm <- importance_glm %>% head(10)
 ```
 
-```{r echo=FALSE, message=FALSE}
+```{r echo=FALSE, message=FALSE, fig.height=10, fig.width=12}
 # Plot the variable importance for the models
 
 p1 <- plot(importance_tree) 
@@ -532,17 +585,10 @@ p4 <- plot(importance_glm)
 
 ```
 
-* **Classification Tree**
+As we note from this chart the models Classification Tree, Random Forest, and Logistic Regression use the AUC loss to compare the model quality of shuffling different variables. AUC is a synthetic measure of the distance to random model in the ROC curve plot. The larger the curve to the top left side of the plot, the better the model.
 
+According to the feature importance of this three models, the most important department is the products department. As we have seen above in the table of number of purchases per department, the product department is the leading one with almost twice the number of the second one in that table. This could be one of the main reasons why all three models have chosen it as the most relevant. It is important to mention that if we shuffle this variable, the AUC of the model will have the largest loss.
 
-* **Random forest**
+For the model Multinomial Logistic Regression, we use the Root Mean Square Error(RMSE) to compare the model quality of shuffling different variables. According to the plot, the most important variable is dairy eggs. If we shuffle this variable, the RMSE of the model will have the largest increase.
 
-
-* **Multinomial logistic regression** 
-
-For this model, we use root mean square error(RMSE) to compare the model quality of shuffling different variables. According to the plot p3, the most important variable is dairy eggs. If we shuffle this variable, the RMSE of the model will have the largest increase.
-
-* **Logistic Regression**
-
-As in model classification tree, in logistic regression we also use the AUC loss to compare the model quality of shuffling different variables. AUC is a synthetic measure of the distance to random model in the ROC curve plot. The larger, the better the model. According to plot p4, the most important variable is produce. If we shuffle this variable, the AUC of the model will have the largest loss.
 
