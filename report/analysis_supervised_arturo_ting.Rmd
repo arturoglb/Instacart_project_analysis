@@ -106,7 +106,7 @@ m1_tree_byday_pruned_pred <- predict(m1_tree_byday_pruned, newdata = df.te, type
 confusionMatrix(data=as.factor(m1_tree_byday_pruned_pred), reference = df.te$order_dow)
 ```
 
-As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get cero. Overall, the accuracy of this model is low with a score of **0.21**, meaning that the model have (`(0.21 - (1/7))= 0.077`) around **8%** of accuracy classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
+As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get zero. Overall, the accuracy of this model is low with a score of **0.21**, meaning that the model have (`(0.21 - (1/7))= 0.077`) around **8%** of accuracy classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
 
 > **One day of the week - Balanced data with Sub-sampling and Cross-Validation**
 
@@ -345,7 +345,7 @@ Multinomial logistic regression is a classification method that generalizes logi
 
 Our first approach is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression problem.
 
-We select the day 0 as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
+We select Sunday as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
 
 ```{r echo=FALSE, message=FALSE, include=FALSE}
 library(nnet)
@@ -419,7 +419,7 @@ insta_pred_sub <- predict(insta_multiglm_bal,newdata = df.te)
 confusionMatrix(factor(insta_pred_sub),df.te$order_dow)
 ```
 
-From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.037** and **0.975** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.113** and **0.894**. The kappa is also higher(from **0.01** to **0.03**) 
+From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Thursday are **0.007** and **0.995** in the previous model. After balancing the data, now the sensitivity and specificity of class Thursday are **0.231** and **0.801**. The kappa is also higher(from **0.01** to **0.03**) 
 
 ### **Logistic regression**
 
@@ -501,7 +501,7 @@ cm <-confusionMatrix(insta.glm_pred, df.te2$Group)
 draw_confusion_matrix3(cm)
 ```
 
-According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.628**) and specificity(**0.479**) is even smaller. Now the Kappa is **0.103**, higher than Cohen's Kappa previous model(**0.03**), and the Accuracy is **0.575**. 
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.62**) and specificity(**0.48**) is even smaller. Now the Kappa is **0.10**, higher than Cohen's Kappa previous model(**0.03**), and the Accuracy is **0.57**. 
 
 Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is slightly higher on the Accuracy by **0.008**, on Cohen'sKappa by **0.010**, and on the Balanced Accuracy by **0.005**. So, for those reasons we have decided choosing this model over the rest.
 
