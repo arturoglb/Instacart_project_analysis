@@ -15,6 +15,9 @@ Before starting applying the models to the data, we have decided to aggregate th
 
 After creating this new table, we converted the column `order_dow` from numeric(int) to categorical values(factor), and to understand better this values, we change the integer values to the name of the day of the week. For example: The value "0" was transformed to "Sunday", "1" to "Monday", "2" to "Tuesday", and so on. 
 
+Moreover, we have decided to split our new table into two, to ensure that the model will not overfit the data and that the results of the predictions are good. To do so, we select for the first set; our **training set**, 80% of the observations randomly(*around 105k obs*), and for the observations that remain we took them as our **test set**(*around 26k obs*).
+
+
 ```{r echo=FALSE, message=FALSE}
 # Selecting only the meaningful columns for the models
 dep_data <- department_wide
@@ -35,6 +38,11 @@ data_by_day$order_dow  <- as.factor(data_by_day$order_dow)
 # Make Valid Column Names 
 colnames(data_by_day) <- make.names(colnames(data_by_day))
 
+# Separate our data into Training set and Test set
+set.seed(12345) # for reproducibility
+index.tr <- createDataPartition(y = data_by_day$order_dow, p= 0.8,list = FALSE)
+df.tr <- data_by_day[index.tr,]
+df.te <- data_by_day[-index.tr,]
 ```
 
 ### **Models**
@@ -64,19 +72,13 @@ For this approach we want to measure the accuracy of the model with the unbalanc
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Separate our data into Training set and Test set
-set.seed(12345) # for reproducibility
-index.tr <- createDataPartition(y = data_by_day$order_dow, p= 0.8,list = FALSE)
-df.tr <- data_by_day[index.tr,]
-df.te <- data_by_day[-index.tr,]
-
 # Classification tree fit and plot
 set.seed(12345)
 m1_tree_byday <- rpart(order_dow ~ ., method= "class", 
                      data=df.tr, cp= 0.0001, model=TRUE)
 
 #Find the best cp
-plotcp(m1_tree_byday)
+#plotcp(m1_tree_byday)
 
 # Prune the tree based on the best cp value
 m1_tree_byday_pruned <- prune(m1_tree_byday, cp=0.00045)
@@ -183,14 +185,14 @@ colnames(data_group) <- make.names(colnames(data_group))
 
 # Separate our data into Training set and Test set
 set.seed(12345) # for reproducibility
-index.tr <- createDataPartition(y = data_group$Group, p= 0.8,list = FALSE)
-df.tr <- data_group[index.tr,]
-df.te <- data_group[-index.tr,]
+index.tr2 <- createDataPartition(y = data_group$Group, p= 0.8,list = FALSE)
+df.tr2 <- data_group[index.tr2,]
+df.te2 <- data_group[-index.tr2,]
 
 # Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
 set.seed(12345)
 m3_tree_group <- caret::train(Group ~ .,
-                           data = df.tr,
+                           data = df.tr2,
                            method ="rpart",
                            preProcess = NULL,
                            trControl=trainControl(method="cv",
@@ -207,7 +209,7 @@ m3_tree_group <- caret::train(Group ~ .,
 
 # Apply Model to the test dataset
 set.seed(12345)
-m3_tree_group_pred <- predict(m3_tree_group, newdata=df.te)
+m3_tree_group_pred <- predict(m3_tree_group, newdata=df.te2)
 
 # Measure the accuracy of the prediction
 draw_confusion_matrix1 <- function(cm) {
@@ -258,7 +260,7 @@ draw_confusion_matrix1 <- function(cm) {
   text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
   text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
-cm<-confusionMatrix(m3_tree_group_pred, df.te$Group)
+cm<-confusionMatrix(m3_tree_group_pred, df.te2$Group)
 draw_confusion_matrix1(cm)
 
 ```
@@ -281,14 +283,14 @@ data_group1 <- data_group %>%
 
 # Separate our data into Training set and Test set
 set.seed(12345) # for reproducibility
-index.tr <- createDataPartition(y = data_group1$Group, p= 0.8,list = FALSE)
-df.tr <- data_group1[index.tr,]
-df.te <- data_group1[-index.tr,]
+index.tr2 <- createDataPartition(y = data_group1$Group, p= 0.8,list = FALSE)
+df.tr2 <- data_group1[index.tr2,]
+df.te2 <- data_group1[-index.tr2,]
 
 # Build the model
 set.seed(12345)
 m4_rf_group <- caret::train(Group ~ .,
-                         data=df.tr,
+                         data=df.tr2,
                          method="rf",
                          preProcess=NULL, 
                          trControl=trainControl(method="cv", 
@@ -299,7 +301,7 @@ m4_rf_group <- caret::train(Group ~ .,
 
 # Apply Model to the test dataset
 set.seed(12345)
-m4_rf_group_pred <- predict(m4_rf_group, newdata=df.te)
+m4_rf_group_pred <- predict(m4_rf_group, newdata=df.te2)
 
 # Measure the accuracy of the prediction
 draw_confusion_matrix2 <- function(cm) {
@@ -350,63 +352,55 @@ draw_confusion_matrix2 <- function(cm) {
   text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
   text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
-cm <-confusionMatrix(m4_rf_group_pred, df.te$Group)
+cm <-confusionMatrix(m4_rf_group_pred, df.te2$Group)
 draw_confusion_matrix2(cm)
 ```
 
 As expected, the Accuracy of the model is higher than the Classification Tree as well as Cohen's Kappa and the balanced accuracy. This model would be preferred at predicting "weekday" and "weekend" as it has better results.
 
-### **Multinomial Logistic Regression**
+### **Multinomial logistic regression**
 
-Our goal is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression.
+> **One day of the week - Unbalanced data**
 
-#####  1.Train and Test set
+Multinomial logistic regression is a classification method that generalizes logistic regression to multiclass problems, i.e. with more than two possible discrete outcomes (Wikipedia,2021). Like binary logistic regression, multinomial logistic regression uses maximum likelihood estimation to evaluate the probability of categorical membership.
 
-```{r message=FALSE, warning=FALSE, include=FALSE}
-department_wide$order_dow <- as.factor(department_wide$order_dow)
-department_wide$order_hour_of_day <- as.factor(department_wide$order_hour_of_day)
+Our first approach is to predict the day of the week that the order will be placed according to the product composition in the order. Since there are 7 days in a week so it is not a binary logistic regression problem but a multinomial logistic regression problem.
+
+```{r echo=FALSE, message=FALSE}
 set.seed(12345)
-insta.index <- sample(x=1:nrow(department_wide), size=0.8*nrow(department_wide), replace=FALSE)
-insta.tr <- department_wide[insta.index,]
-insta.te <- department_wide[-insta.index,]
+insta.index <- sample(x=1:nrow(data_by_day), size=0.8*nrow(data_by_day), replace=FALSE)
+insta.tr <- data_by_day[insta.index,]
+insta.te <- data_by_day[-insta.index,]
 ```
 
+We select the day 0 as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
 
-#####  2.Build the Model
-
-We use the day 0 as the reference level. To build the model, we use the number of products in each department of the order as explanatory variables.
-
-```{r message=FALSE, warning=FALSE, include=FALSE}
+```{r echo=FALSE, message=FALSE, include=FALSE}
 library(nnet)
-insta.tr$order_dow2 <- relevel(as.factor(insta.tr$order_dow),ref = "0")
-train <- insta.tr[4:25]
-insta_multiglm <- multinom(order_dow2~.,data=train) 
+insta.tr$order_dow <- relevel(as.factor(insta.tr$order_dow),ref = "Sunday")
+insta_multiglm <- multinom(order_dow~.,data=insta.tr) 
 ```
 
-#####  3.Check the Score of the Model
 
-```{r message=FALSE, warning=FALSE}
-test <- insta.te[3:24]
-insta_pred <- predict(insta_multiglm,newdata = test)
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+insta_pred <- predict(insta_multiglm,newdata = insta.te)
 confusionMatrix(factor(insta_pred),factor(insta.te$order_dow))
 ```
 
-#### improve the model
 
-According to the confusion matrix, the accurancy is low and there is a big difference between sensitivity and specificity. We try to balance the data and use a cross-validation to improve the model accurancy.
+According to the confusion matrix, the accuracy(**0.209**) is low and there is a big difference between sensitivity and specificity in each class. For example, the sensitivity of class Friday is **0.03** while the specificity of class Friday is **0.98**. Also the kappa(**0.008**) is very small which means the observed accuracy is only a little higher than the accuracy that one would expect from a random model. We try to balance the data and use a cross-validation to improve the model accuracy.
 
-##### 1.balance the data
+> **One day of the week - balanced data with cross-validation**
 
-Check the unbalance of classes frequencies.
-```{r message=FALSE, warning=FALSE}
-table(insta.tr$order_dow2)
+Before balancing the data, We need to check the frequency of each class. The class Wednesday has the smallest frequency(**12627**). We will balance data by sub-sampling according to the frequency of class Wednesday. 
+```{r echo=FALSE, message=FALSE}
+table(insta.tr$order_dow)
 ```
 
-##### 2.subsampling and cross-validation
 
-We try the cross-validation with the subsampling data, but the data set is big and it takes a very long time to run it so we decide not to include the cross-validation.
+We try the cross-validation with the sub-sampling data by using the train function of caret package, but the data set is too big and it takes a very long time to run it so we decide not to include the cross-validation.
 
-```{r}
+```{r echo=FALSE, message=FALSE}
 #insta_multiglm_new <- caret::train(order_dow2~.,data=train,
 #                                   method="multinom",
 #                                   trControl=trainControl(method = "cv",
@@ -415,18 +409,16 @@ We try the cross-validation with the subsampling data, but the data set is big a
 ```
 
 
-subsampling the data without cross-validation
+```{r echo=FALSE, message=FALSE}
+n.3 <- min(table(insta.tr$order_dow)) ## 12627
 
-```{r message=FALSE, warning=FALSE}
-n.3 <- min(table(insta.tr$order_dow2)) ## 12627
-
-insta.tr.0 <- filter(insta.tr, order_dow2=="0") ## the "3" cases
-insta.tr.1 <- filter(insta.tr, order_dow2=="1")
-insta.tr.2 <- filter(insta.tr, order_dow2=="2")
-insta.tr.3 <- filter(insta.tr, order_dow2=="3")
-insta.tr.4 <- filter(insta.tr, order_dow2=="4")
-insta.tr.5 <- filter(insta.tr, order_dow2=="5")
-insta.tr.6 <- filter(insta.tr, order_dow2=="6")
+insta.tr.0 <- filter(insta.tr, order_dow=="Sunday") ## the "3" cases
+insta.tr.1 <- filter(insta.tr, order_dow=="Monday")
+insta.tr.2 <- filter(insta.tr, order_dow=="Tuesday")
+insta.tr.3 <- filter(insta.tr, order_dow=="Wednesday")
+insta.tr.4 <- filter(insta.tr, order_dow=="Thursday")
+insta.tr.5 <- filter(insta.tr, order_dow=="Friday")
+insta.tr.6 <- filter(insta.tr, order_dow=="Saturday")
 
 index.0 <- sample(size=n.3, x=1:nrow(insta.tr.0), replace=FALSE) 
 index.1 <- sample(size=n.3, x=1:nrow(insta.tr.1), replace=FALSE)
@@ -439,82 +431,141 @@ insta.tr.subs <- data.frame(rbind(insta.tr.3, insta.tr.0[index.0,],
                                insta.tr.1[index.1,],insta.tr.2[index.2,],
                                insta.tr.4[index.4,],insta.tr.5[index.5,],
                                insta.tr.6[index.6,])) 
-insta.tr.subs <- insta.tr.subs %>% rename("canned goods"="canned.goods",
-                                    "dairy eggs"="dairy.eggs",
-                      "meat seafood"="meat.seafood","personal care"="personal.care",
-                      "dry goods pasta"="dry.goods.pasta"
-                      )
-
-table(insta.tr.subs$order_dow2)
+table(insta.tr.subs$order_dow)
 ```
 
-```{r message=FALSE, warning=FALSE}
-train_sub <- insta.tr.subs[3:25]
-insta_multiglm_bal <- multinom(order_dow2~.,data=train_sub)
+We only sub-sample the data without applying cross-validation. Now every class has the same frequency(**12627**).
+
+```{r echo=FALSE, message=FALSE, include=FALSE}
+insta.tr.subs$order_dow <- relevel(as.factor(insta.tr.subs$order_dow),ref = "Sunday")
+insta_multiglm_bal <- multinom(order_dow~.,data=insta.tr.subs)
 ```
 
-From the confusion matrix report we can notice that the balanced accurancy of each class is higher and the kappa of the model is also high.
 
-```{r message=FALSE, warning=FALSE}
-test_sub <- insta.te[3:24]
-insta_pred_sub <- predict(insta_multiglm_bal,newdata = test_sub)
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+insta.te <- insta.te %>%
+  rename(canned.goods = `canned goods`) %>%
+  rename(dairy.eggs = `dairy eggs`) %>%
+  rename(meat.seafood = `meat seafood`) %>%
+  rename(personal.care = `personal care`) %>%
+  rename(dry.goods.pasta = `dry goods pasta`)
+
+insta_pred_sub <- predict(insta_multiglm_bal,newdata = insta.te)
 confusionMatrix(factor(insta_pred_sub),factor(insta.te$order_dow))
 ```
 
-### **Logistic Regression**
+From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.028** and **0.978** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.092** and **0.919**. The kappa is also higher(from **0.008** to **0.032**) 
+
+### **Logistic regression**
+
+> Weekdays and Weekend - Balanced data and Cross-Validation
+
+The logistic regression is a regression adapted to binary classification. The basic idea of logistic regression is to use the mechanism already developed for linear regression by modeling the probability pi using a linear predictor function, i.e. a linear combination of the explanatory variables and a set of regression coefficients that are specific to the model at hand but the same for all trials. The linear combination is transformed to a probability using a sigmoid function.
 
 In order to further improve our model quality, we think about aggregating the classes of the day of week. Usually the buying behavior is different between weekday and weekend. So we separate the day of week into two classes weekday and weekend.
 
 Now the outcome variable has only two categories so we can use the binomial logistic regression.
 
-```{r message=FALSE, warning=FALSE}
-department_WW <- department_wide %>% 
-  mutate(order_ww=ifelse(order_dow %in% c(0,6) , "weekend", "weekday"))
-department_WW$order_dow <- as.factor(department_WW$order_ww)
-insta.WW.tr <- department_WW[insta.index,]
-insta.WW.te <- department_WW[-insta.index,]
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+insta_glm <- caret::train(
+  Group~.,
+  data = df.tr2,
+  method="glm",
+  trControl=trainControl(method = "cv",
+                         number = 10,
+                         summaryFunction = twoClassSummary, 
+                         classProbs = TRUE, savePredictions = T,
+                         sampling = "down"))
 ```
 
 
-```{r message=FALSE, warning=FALSE}
-train.SS <- insta.WW.tr[4:25]
-insta_glm <- caret::train(order_ww~.,
-                          data = train.SS,
-                          method="glm",
-                          trControl=trainControl(method = "cv",
-                                                 number = 10,
-                                                 summaryFunction = twoClassSummary,
-                                                 classProbs = TRUE, savePredictions = T,
-                                                 sampling = "down"))
+```{r echo=FALSE, message=FALSE}
+insta.glm_pred <- predict(insta_glm,newdata = df.tr2)
+confusionMatrix(factor(insta.glm_pred),factor(df.tr2$Group))
 ```
 
-According to the confusion matrix the balanced accuracy and kappa are higher.
-
-```{r message=FALSE, warning=FALSE}
-test_SS <- insta.WW.te[4:25]
-insta.glm_pred <- predict(insta_glm,newdata = test_SS)
-confusionMatrix(factor(insta.glm_pred),factor(insta.WW.te$order_ww))
-```
-
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.622**) and specificity(**0.480**) is even smaller. Now the Kappa is **0.098**, higher than Cohen's Kappa previous model(**0.032**). 
 
 ### **Variable Importance**
 
-```{r echo=FALSE, message=FALSE}
+```{r message=FALSE, warning=FALSE, include=FALSE}
+library(e1071)
+library(DALEX)
 
 
+x_train1 <- select(df.tr, -order_dow) # by day of the week
+y_train1 <- pull(df.tr, order_dow) #  by day of the week
+y_train1 <- as.numeric(y_train1)
+
+x_train2 <- select(df.tr2, -Group) # week and weekend
+y_train2 <- pull(df.tr2, Group) # week and weekend
+y_train2 <- as.numeric(y_train2)
 
 
+explainer_tree <- DALEX::explain(model = m3_tree_group, 
+                                 data = x_train2, 
+                                 y = y_train2,
+                                 label = "Classification Tree")
 
+explainer_rf <- DALEX::explain(model = m4_rf_group,
+                               data = x_train2,
+                               y = y_train2,
+                               label = "Random Forest")
+
+explainer_ml <- DALEX::explain(model = insta_multiglm_bal,
+                                data = x_train1,
+                                y = y_train1,
+                               label = "Multinomial logistic regression")
+
+explainer_glm <- DALEX::explain(model = insta_glm,
+                                data = x_train2,
+                                y = y_train2,
+                               label = "Logistic Regression")
 ```
 
+```{r message=FALSE, warning=FALSE, include=FALSE}
+calculate_importance <- function(your_model_explainer, n_permutations = 10) {
+  imp <- model_parts(explainer = your_model_explainer,
+                     B = n_permutations, # no. of times to shuffle each column
+                     type = "variable_importance", # 
+                     N = NULL) # no. of samples to calculate the VarImp                                            NULL selects the entire training set
+  return(imp)
+}
 
+importance_tree  <- calculate_importance(explainer_tree)
+importance_tree[order(importance_tree[,"dropout_loss"]), ]
+importance_tree <- importance_tree %>% head(10)
 
+importance_rf  <- calculate_importance(explainer_rf)
+importance_rf[order(importance_rf[,"dropout_loss"]), ]
+importance_rf <- importance_rf %>% head(10)
 
+importance_ml  <- calculate_importance(explainer_ml)
+importance_ml[order(importance_ml[,"dropout_loss"]), ]
+importance_ml <- importance_ml %>% head(10)
 
+importance_glm <- calculate_importance(explainer_glm)
+importance_glm[order(importance_glm[,"dropout_loss"]), ]
+importance_glm <- importance_glm %>% head(10)
+```
+
+```{r echo=FALSE, message=FALSE}
+# Plot the variable importance for the models
+library(ggplot2)
+
+p1 <- plot(importance_tree) 
+p2 <- plot(importance_rf) 
+p3 <- plot(importance_ml)
+p4 <- plot(importance_glm) 
+(p1 / p2) | (p3 / p4)
+
+```
 
 
 ## References
 
-Ivo Bernardo, Classification Decision Trees, Easily Explained, Aug 30, 2021: https://towardsdatascience.com/classification-decision-trees-easily-explained-f1064dde175e
+[Ivo Bernardo, Classification Decision Trees, Easily Explained, Aug 30, 2021](https://towardsdatascience.com/classification-decision-trees-easily-explained-f1064dde175e)
 
-Saikumar Talari, Random Forest® vs Decision Tree: Key Differences, February 18, 2022: https://www.kdnuggets.com/2022/02/random-forest-decision-tree-key-differences.html#:~:text=The%20critical%20difference%20between%20the,work%20according%20to%20the%20output.
+[Saikumar Talari, Random Forest® vs Decision Tree: Key Differences, February 18, 2022](https://www.kdnuggets.com/2022/02/random-forest-decision-tree-key-differences.html#:~:text=The%20critical%20difference%20between%20the,work%20according%20to%20the%20output.)
+
+[Wikipedia, Multinomial logistic regression, 23 August 2021](https://en.wikipedia.org/wiki/Multinomial_logistic_regression)
