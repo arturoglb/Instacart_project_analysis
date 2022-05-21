@@ -73,7 +73,6 @@ For this approach we want to measure the accuracy of the model with the unbalanc
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Classification tree fit and plot
-set.seed(12345)
 m1_tree_byday <- rpart(order_dow ~ ., method= "class", 
                      data=df.tr, cp= 0.0001, model=TRUE)
 
@@ -116,7 +115,6 @@ Now for this approach, we will balanced the data with sub-sampling and make the 
 ```{r echo=FALSE, message=FALSE}
 
 # Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of Sub-sampling
-set.seed(12345) 
 m2_tree_byday <- caret::train(order_dow ~ .,
                            data = df.tr,
                            method ="rpart",
@@ -137,13 +135,12 @@ prp(m2_tree_byday$finalModel,
 rpart.rules(m2_tree_byday$finalModel, cover = T)
 ```
 
-The left column (*.outcome*) of the rules show the day that was selected for the terminal node (*the one with the highest probability*) and next to it the probability of each day of the week for the department selected. In this case for the last rule it seems that Wednesday and Thursday have the same probability because of the rounding, but Thursday its **0.3%** above Wednesday, this can be seen from the tree plot.
+The left column (*.outcome*) of the rules show the day that was selected for the terminal node (*the one with the highest probability*) and next to it the probability of each day of the week for the department selected. In this case for the last rule it seems that Wednesday and Thursday have the same probability because of the rounding, but Thursday its **0.2%** above Wednesday, this can be seen from the tree plot.
 
 The rightmost column (*cover*) gives the percentage of observations in each rule. The first rule says that Saturday will be chosen when the department **produce** is lower than 3 and higher or equal than 1 with a probability of **18%**. Then we can look at the results of the model in the Confusion Matrix.
 
 ```{r echo=FALSE, message=FALSE}
 # Apply Model to the test dataset
-set.seed(12345)
 m2_tree_byday_pred <- predict(m2_tree_byday, newdata=df.te)
 
 # Measure the accuracy of the prediction
@@ -193,7 +190,6 @@ m3_tree_group <- caret::train(Group ~ .,
 #           cex.main = 1)
 
 # Apply Model to the test dataset
-set.seed(12345)
 m3_tree_group_pred <- predict(m3_tree_group, newdata=df.te2)
 
 # Measure the accuracy of the prediction
@@ -250,7 +246,7 @@ draw_confusion_matrix1(cm)
 
 ```
 
-The results of the confusion matrix show us a well balanced data from what we can observed in the sensitivity and specificity. The Accuracy of the model is similar comparing it with the other two approaches, the model have  (`(0.538 - (1/2))= 0.038`) just below **4%** of accuracy. Overall, all different approaches have a low score at predicting the day of the week based on the department purchases from previous orders. 
+The results of the confusion matrix show us a well balanced data from what we can observed in the sensitivity and specificity. The Accuracy of the model is similar comparing it with the other two approaches, the model have  (`(0.533 - (1/2))= 0.033`) **3%** of accuracy. Overall, all different approaches have a low score at predicting the day of the week based on the department purchases from previous orders. 
 
 ### **Random Forest**
 
@@ -273,7 +269,6 @@ df.tr3 <- data_group1[index.tr2,]
 df.te3 <- data_group1[-index.tr2,]
 
 # Build the model
-set.seed(12345)
 m4_rf_group <- caret::train(Group ~ .,
                          data=df.tr3,
                          method="rf",
@@ -285,7 +280,6 @@ m4_rf_group <- caret::train(Group ~ .,
 # It takes more than 3 min to run
 
 # Apply Model to the test dataset
-set.seed(12345)
 m4_rf_group_pred <- predict(m4_rf_group, newdata=df.te3)
 
 # Measure the accuracy of the prediction
@@ -366,7 +360,7 @@ confusionMatrix(factor(insta_pred),df.te$order_dow)
 ```
 
 
-According to the confusion matrix, the accuracy(**0.213**) is low and there is a big difference between sensitivity and specificity in each class. For example, the sensitivity of class Friday is **0.028** while the specificity of class Friday is **0.978**. Also the kappa(**0.01**) is very small which means the observed accuracy is only a little higher than the accuracy that one would expect from a random model. We try to balance the data and use a cross-validation to improve the model accuracy.
+According to the confusion matrix, the accuracy(**0.213**) is low and there is a big difference between sensitivity and specificity in each class. For example, the sensitivity of class Friday is **0.037** while the specificity of class Friday is **0.975**. Also the kappa(**0.01**) is very small which means the observed accuracy is only a little higher than the accuracy that one would expect from a random model. We try to balance the data and use a cross-validation to improve the model accuracy.
 
 > **One day of the week - balanced data with cross-validation**
 
@@ -425,7 +419,7 @@ insta_pred_sub <- predict(insta_multiglm_bal,newdata = df.te)
 confusionMatrix(factor(insta_pred_sub),df.te$order_dow)
 ```
 
-From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.028** and **0.978** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.123** and **0.889**. The kappa is also higher(from **0.01** to **0.032**) 
+From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Monday are **0.037** and **0.975** in the previous model. After balancing the data, now the sensitivity and specificity of class Monday are **0.113** and **0.894**. The kappa is also higher(from **0.01** to **0.03**) 
 
 ### **Logistic regression**
 
@@ -507,15 +501,15 @@ cm <-confusionMatrix(insta.glm_pred, df.te2$Group)
 draw_confusion_matrix3(cm)
 ```
 
-According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.620**) and specificity(**0.472**) is even smaller. Now the Kappa is **0.089**, higher than Cohen's Kappa previous model(**0.032**), and the Accuracy is **0.574**. 
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.628**) and specificity(**0.479**) is even smaller. Now the Kappa is **0.103**, higher than Cohen's Kappa previous model(**0.03**), and the Accuracy is **0.575**. 
 
-Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is slightly higher on the Accuracy by **0.008**. So, we have decided choosing this model over the rest.
+Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is slightly higher on the Accuracy by **0.008**, on Cohen'sKappa by **0.010**, and on the Balanced Accuracy by **0.005**. So, for those reasons we have decided choosing this model over the rest.
 
 ### **Variable Importance**
 
 Variable importance is a method that provides a measure of the importance of each feature for the model prediction quality. We analyze the variables importance of our 4 models. There are 21 explanatory variables in each of our models and we only show the top 10 most important variables in the plots.
 
-Note:
+**Note**: *We faced some computation speed problems while running the the Variable Importance for all the models, for that reason we decided to considered the same amount of observations as the Random Forest model(10k) to reduce the waiting time.*
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
@@ -575,7 +569,7 @@ importance_glm[order(importance_glm[,"dropout_loss"]), ]
 importance_glm <- importance_glm %>% head(10)
 ```
 
-```{r echo=FALSE, message=FALSE, fig.height=10, fig.width=12}
+```{r echo=FALSE, message=FALSE, fig.height=8, fig.width=12}
 # Plot the variable importance for the models
 
 p1 <- plot(importance_tree) 
