@@ -171,10 +171,8 @@ data_group$Group<- as.factor(data_group$Group)
 colnames(data_group) <- make.names(colnames(data_group))
 
 # Separate our data into Training set and Test set
-set.seed(12345) # for reproducibility
-index.tr2 <- createDataPartition(y = data_group$Group, p= 0.8,list = FALSE)
-df.tr2 <- data_group[index.tr2,]
-df.te2 <- data_group[-index.tr2,]
+df.tr2 <- data_group[index.tr,]
+df.te2 <- data_group[-index.tr,]
 
 # Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of sub-sampling
 set.seed(12345)
@@ -271,13 +269,13 @@ data_group1 <- data_group %>%
 # Separate our data into Training set and Test set
 set.seed(12345) # for reproducibility
 index.tr2 <- createDataPartition(y = data_group1$Group, p= 0.8,list = FALSE)
-df.tr2 <- data_group1[index.tr2,]
-df.te2 <- data_group1[-index.tr2,]
+df.tr3 <- data_group1[index.tr2,]
+df.te3 <- data_group1[-index.tr2,]
 
 # Build the model
 set.seed(12345)
 m4_rf_group <- caret::train(Group ~ .,
-                         data=df.tr2,
+                         data=df.tr3,
                          method="rf",
                          preProcess=NULL, 
                          trControl=trainControl(method="cv", 
@@ -288,7 +286,7 @@ m4_rf_group <- caret::train(Group ~ .,
 
 # Apply Model to the test dataset
 set.seed(12345)
-m4_rf_group_pred <- predict(m4_rf_group, newdata=df.te2)
+m4_rf_group_pred <- predict(m4_rf_group, newdata=df.te3)
 
 # Measure the accuracy of the prediction
 draw_confusion_matrix2 <- function(cm) {
@@ -339,7 +337,7 @@ draw_confusion_matrix2 <- function(cm) {
   text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
   text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
-cm <-confusionMatrix(m4_rf_group_pred, df.te2$Group)
+cm <-confusionMatrix(m4_rf_group_pred, df.te3$Group)
 draw_confusion_matrix2(cm)
 ```
 
@@ -440,23 +438,6 @@ In order to further improve our model quality, we think about aggregating the cl
 Now the outcome variable has only two categories so we can use the binomial logistic regression.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Grouping days by Week and Weekend
-data_group <- data_by_day %>% mutate(Group =ifelse(
-  order_dow == "Sunday"|order_dow == "Saturday", "weekend", "weekday")) %>%
-  select(-order_dow)
-
-# Transform y variable to a factor
-data_group$Group<- as.factor(data_group$Group)
-
-# Make Valid Column Names 
-colnames(data_group) <- make.names(colnames(data_group))
-
-# Separate our data into Training set and Test set
-set.seed(12345) # for reproducibility
-index.tr2 <- createDataPartition(y = data_group$Group, p= 0.8,list = FALSE)
-df.tr2 <- data_group[index.tr2,]
-df.te2 <- data_group[-index.tr2,]
-
 # Build the model
 insta_glm <- caret::train(
   Group~.,
@@ -471,8 +452,7 @@ insta_glm <- caret::train(
 
 
 ```{r echo=FALSE, message=FALSE}
-insta.glm_pred <- predict(insta_glm,newdata = df.tr2)
-confusionMatrix(factor(insta.glm_pred),df.tr2$Group)
+insta.glm_pred <- predict(insta_glm,newdata = df.te2)
 
 # Measure the accuracy of the prediction
 draw_confusion_matrix3 <- function(cm) {
@@ -527,13 +507,15 @@ cm <-confusionMatrix(insta.glm_pred, df.te2$Group)
 draw_confusion_matrix3(cm)
 ```
 
-According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.629**) and specificity(**0.475**) is even smaller. Now the Kappa is **0.1**, higher than Cohen's Kappa previous model(**0.032**), and the Accuracy is **0.574**. 
+According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.620**) and specificity(**0.472**) is even smaller. Now the Kappa is **0.089**, higher than Cohen's Kappa previous model(**0.032**), and the Accuracy is **0.574**. 
 
-Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is higher on the Accuracy by **0.012** and on Cohen's Kappa by **0.004** with the same Balanced Accuracy. So, we can opt choosing this model over the rest.
+Comparing the result of this model against the previous ones, we note that Random forest model is the one that resembles these results, only Logistic regression is slightly higher on the Accuracy by **0.008**. So, we have decided choosing this model over the rest.
 
 ### **Variable Importance**
 
 Variable importance is a method that provides a measure of the importance of each feature for the model prediction quality. We analyze the variables importance of our 4 models. There are 21 explanatory variables in each of our models and we only show the top 10 most important variables in the plots.
+
+Note:
 
 ```{r message=FALSE, warning=FALSE, include=FALSE}
 
@@ -541,8 +523,8 @@ x_train1 <- select(df.tr, -order_dow) # by day of the week
 y_train1 <- pull(df.tr, order_dow) #  by day of the week
 y_train1 <- as.numeric(y_train1)
 
-x_train2 <- select(df.tr2, -Group) # week and weekend
-y_train2 <- pull(df.tr2, Group) # week and weekend
+x_train2 <- select(df.tr3, -Group) # week and weekend
+y_train2 <- pull(df.tr3, Group) # week and weekend
 y_train2 <- as.numeric(y_train2)
 
 
@@ -604,7 +586,7 @@ p4 <- plot(importance_glm)
 
 ```
 
-As we note from this chart the models Classification Tree, Random Forest, and Logistic Regression use the AUC loss to compare the model quality of shuffling different variables. AUC is a synthetic measure of the distance to random model in the ROC curve plot. The larger the curve to the top left side of the plot, the better the model.
+As we note from this chart the models Classification Tree, Random Forest, and Logistic Regression use the AUC loss to compare the model quality of shuffling different variables. AUC is a synthetic measure of the distance to random model in the ROC curve plot. The larger AUC, the better the model.
 
 According to the feature importance of this three models, the most important department is the products department. As we have seen above in the table of number of purchases per department, the product department is the leading one with almost twice the number of the second one in that table. This could be one of the main reasons why all three models have chosen it as the most relevant. It is important to mention that if we shuffle this variable, the AUC of the model will have the largest loss.
 
