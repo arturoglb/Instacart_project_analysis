@@ -22,7 +22,7 @@ Accuracy: decision tree:**O.211**
 kappa:decision tree:**O.016**
       multinomial logistic regression:**O.01**
 
-Table 1 - decision tree
+Table 1 - Decision Tree
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 by_day_unbal_tree1 <- as.data.frame(c1$byClass) %>% select(1,2,11)
 by_day_unbal_tree2 <- data.frame(cbind(Accuracy=c1$overall[1],
@@ -35,7 +35,7 @@ knitr::kable(
   booktabs = TRUE, valign = 't')
 ```
 
-Table 2 - Multinomial logistic regression
+Table 2 - Multinomial Logistic Regression
 
 ```{r}
 by_day_unbal_mlr1 <- as.data.frame(c5$byClass) %>% select(1,2,11)
@@ -59,7 +59,7 @@ Accuracy: decision tree:**O.195**
 kappa:decision tree:**O.035**
       multinomial logistic regression:**O.03**
 
-Table 3 - with cross-validation: decision tree
+Table 3 - with cross-validation: Decision Tree
 ```{r}
 by_day_bal_tree1 <- as.data.frame(c2$byClass) %>% select(1,2,11)
 by_day_bal_tree2 <- data.frame(cbind(Accuracy=c2$overall[1],
@@ -72,7 +72,7 @@ knitr::kable(
   booktabs = TRUE, valign = 't')
 ```
 
-Table 4 - multinomial logistic regression
+Table 4 - Multinomial Logistic Regression
 
 ```{r}
 by_day_bal_mlr1 <- as.data.frame(c6$byClass) %>% select(1,2,11)
