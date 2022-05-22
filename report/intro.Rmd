@@ -25,14 +25,16 @@ time between orders (details of each data set will be introduced below).
 Instacart hopes campaign participants test models for predicting
 products that a user will buy again, try for the first time or add to
 cart next during a session, which may need to use the the models such as
-XGBoost, word2vec and Annoy.
+XGBoost, word2vec and Annoy (Jeremy Stanley, May 3, 2017).
 
 Repurchase predicting and order placement day predicting are the popular
-and helpful predictions among e-commerce companies. For example, Amazon
+and helpful predictions among e-commerce companies. For example, it can be 
+applied to do personalization,  managing supply and demand, churn prediction, 
+improved customer service, etc (Bigcommerce Blog, Nick Shaw).  Amazon
 has already developed a patent called "anticipatory shipping" that can
 predict what and when people want to buy and ship packages even before
-customers have placed an order. In this case, they can largely
-optimizing logistics management, human and equipment resources and
+customers have placed an order (The Economic Time, Jan 27, 2014). In this case, 
+they can largely optimizing logistics management, human and equipment resources and
 inventory arrangement, so that it would help them to decrease cost and
 increase profit. Meantime, this type of prediction also requires much
 more information of customers' behavior, such as items customers have
@@ -67,11 +69,13 @@ Thus, our research questions will be:
 
 ### **Reference articles**
 
-[3 Million Instacart Orders, Open
-Sourced](https://tech.instacart.com/3-million-instacart-orders-open-sourced-d40d29ead6f2)
+[Jeremy Stanley, 3 Million Instacart Orders, Open Sourced, May 3, 2017
+](https://tech.instacart.com/3-million-instacart-orders-open-sourced-d40d29ead6f2)   
 
-[Amazon may predict and ship your order before you place
-it](https://economictimes.indiatimes.com/tech/internet/amazon-may-predict-and-ship-your-order-before-you-place-it/articleshow/29445699.cms)
+[Bigcommerce Blog, Nick Shaw, Ecommerce Machine Learning: AI's Role in the Future of Online
+Shopping](https://www.bigcommerce.com/blog/ecommerce-machine-learning/#machine-learning-has-developed-over-the-years)   
 
-[Ecommerce Machine Learning: AI's Role in the Future of Online
-Shopping](https://www.bigcommerce.com/blog/ecommerce-machine-learning/#machine-learning-has-developed-over-the-years)
+[The Economic Time, Amazon may predict and ship your order before you place
+it, Jan 27, 2014](https://economictimes.indiatimes.com/tech/internet/amazon-may-predict-and-ship-your-order-before-you-place-it/articleshow/29445699.cms)   
+
+

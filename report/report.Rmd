@@ -15,4 +15,3 @@ text-align: justify}
 
 ```{r child = c('intro.Rmd', 'eda.Rmd', 'analysis_supervised_arturo_ting.Rmd', 'analysis_unsupervised_bella_mandy.Rmd')}
 ```
-

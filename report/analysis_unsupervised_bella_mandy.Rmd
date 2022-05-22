@@ -116,7 +116,10 @@ Our observations:
 ```{r, fig.height=20, fig.width=20, echo = FALSE, message = FALSE, warning=FALSE}
 ggplot(department.df, aes(y=value, group=Clust, fill=Clust)) +
   geom_boxplot() +
-  facet_wrap(~variable, scale='free')
+  facet_wrap(~variable, scale='free')+
+  theme(legend.text=element_text(size=rel(3)),
+        strip.text=element_text(size=20),
+        axis.text =element_text(size=20) )
 ```
 
 ### **Partitioning methods**
