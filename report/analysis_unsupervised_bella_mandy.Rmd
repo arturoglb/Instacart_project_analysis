@@ -58,43 +58,36 @@ plot(department.hc, hang=-1)
 
 We will choose the optimal number of clusters from statistics. We will apply the within-cluster sum of squares, the GAP statistics and the silhouette using complete linkage on Euclidean distance.
 
-##### The within-cluster sum of squares
 
-From the chart below, we see that the result is difficult to interpret. It seems the optimal k = 3.
 
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
-fviz_nbclust(department_wide.tr,
+```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=8, fig.width=10}
+p1 <- fviz_nbclust(department_wide.tr,
              hcut, hc_method="complete",
              hc_metric="euclidean",
              method = "wss", 
              k.max = 25, verbose = FALSE)
-```
 
-##### The silhouette
-
-With the silhouette statistic, the larger value of the average silhouette width is the better. We can see that the optimal number of clustering is 3.
-
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
-fviz_nbclust(department_wide.tr,
+p2 <- fviz_nbclust(department_wide.tr,
              hcut, hc_method="complete",
              hc_metric="euclidean",
              method = "silhouette", 
              k.max = 25, verbose = FALSE)
-```
 
-##### The Gap statistic
-
-We see that the Gap statistic returns 2 clusters as an optimal number of cluster.
-
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
-fviz_nbclust(department_wide.tr,
+p3 <-fviz_nbclust(department_wide.tr,
              hcut, hc_method="complete",
              hc_metric="euclidean",
              method = "gap", 
              k.max = 25, verbose = FALSE)
+p1 / p2 / p3
 ```
 
-We will choose 3 as a number of clusters and cut the trees as follows.
+From the graph we can interpret the following:
+
+* **The Within-Cluster Sum of Squares:** It seems there is an elbow at the cluster number 3, for that reason we choose the optimal k = 3.
+* **The Silhouette:** With the silhouette statistic, the larger value of the average silhouette width is the better. We can see that the optimal number of clustering is 3.
+* **The Gap Statistic:** We see that the Gap statistic returns 2 clusters as an optimal number of cluster.
+
+For those reasons we have decided to choose 3 as a number of clusters and cut the trees as follows.
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 plot(department.hc, hang=-1)
@@ -134,41 +127,30 @@ In this section, we will apply partitioning methods, K-means and Partitioning Ar
 
 We will use WSS, silhouette and the Gap statistic to determine the number of clusters used for K-means. It's important to note that K-means is suitable for numerical features only. Since all our features are numerical, it's appropriate to perform the K-means analysis.
 
-##### The within-cluster sum of squares
-
-From the graph below, it's very difficult to distinguish an elbow on the graph.
-
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
+```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=8, fig.width=10}
 library(factoextra)
-fviz_nbclust(department_wide.tr,
+
+p4 <- fviz_nbclust(department_wide.tr,
              kmeans,
              method = "wss", 
              k.max = 25, verbose = FALSE)
-#3 or 4
-#difficult to distinguish a clear cut
-```
 
-##### Silhouette
-
-From this approach, k = 2 (the highest number) is the optimal number of clusters.
-
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
-fviz_nbclust(department_wide.tr,
+p5 <- fviz_nbclust(department_wide.tr,
              kmeans, 
              method = "silhouette", 
              k.max = 25, verbose = FALSE)
-```
 
-##### Gap statistic
-
-From this graph, it's not conclusive. The function chose 13 as an optimal number but 15 and 22, which are local maximum, might be also used here.
-
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
-fviz_nbclust(department_wide.tr,
+p6 <- fviz_nbclust(department_wide.tr,
              kmeans,
              method = "gap", 
              k.max = 25, verbose = FALSE)
+p4 / p5 / p6
+
 ```
+
+* **The Within-Cluster Sum of Squares:**  It seems there is an elbow at the cluster number 2, for that reason we choose the optimal k = 2.
+* **Silhouette:** From this approach, k = 2 (the highest number) is the optimal number of clusters.
+* **Gap Statistic:** From this graph, it's not conclusive. The function chose 13 as an optimal number but 15 and 22, which are local maximum, might be also used here.
 
 Next, we will show a scatter plot along the first and second principal components and group by 2 clusters using K-means. We will see that PC1 can distinguish the clusters quite well. Cluster 1 has higher PC1 than Cluster 2.
 
