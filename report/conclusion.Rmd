@@ -1,0 +1,119 @@
+---
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+source(here::here("scripts/setup.R"))
+```
+
+## **Conclusion**
+
+For the supervised learning model, we use sensitivity, specificity, balanced accuracy, overall accuracy and kappa to compare the quality of different models.
+
+> **One day of the week - Unbalanced data**
+
+According to table1, table2, the overall accuracy and kappa of decision tree and multinomila regression are very low. What's more, there is a serious unbalance between sensitivity and specificity. The quality of both models is pretty similar and needs to be improved.
+
+Accuracy: decision tree:**O.211**
+          multinomial logistic regression:**O.213**
+          
+kappa:decision tree:**O.016**
+      multinomial logistic regression:**O.01**
+
+Table 1 - decision tree
+```{r}
+by_day_unbal_tree1 <- as.data.frame(c1$byClass) %>% select(1,2,11)
+by_day_unbal_tree2 <- data.frame(cbind(Accuracy=c1$overall[1],
+                                     Kappa=c1$overall[2]))
+row.names(by_day_unbal_tree2) <- "overall"
+
+knitr::kable(
+  list(by_day_unbal_tree2, by_day_unbal_tree1),
+  caption = 'decision tree',
+  booktabs = TRUE, valign = 't')
+```
+
+Table 2 - Multinomial logistic regression
+
+```{r}
+by_day_unbal_mlr1 <- as.data.frame(c5$byClass) %>% select(1,2,11)
+by_day_unbal_mlr2 <- data.frame(cbind(Accuracy=c5$overall[1],
+                                     Kappa=c5$overall[2]))
+row.names(by_day_unbal_mlr2) <- "overall"
+ 
+knitr::kable(
+  list(by_day_unbal_mlr2, by_day_unbal_mlr1),
+  caption = 'multinomial logistic regression',
+  booktabs = TRUE, valign = 't')
+```
+
+> **One day of the week - balanced data**
+
+According to table3 and table4, after we balanced the data and do the cross-validation, the difference between sensitivity and specificity is smaller. Even though the accuracy is a little lower, the kappa of both decision tree and multinomial logistic regression are higher. 
+
+Accuracy: decision tree:**O.195**
+          multinomial logistic regression:**O.176**
+          
+kappa:decision tree:**O.035**
+      multinomial logistic regression:**O.03**
+
+Table 3 - with cross-validation: decision tree
+```{r}
+by_day_bal_tree1 <- as.data.frame(c2$byClass) %>% select(1,2,11)
+by_day_bal_tree2 <- data.frame(cbind(Accuracy=c2$overall[1],
+                                     Kappa=c2$overall[2]))
+row.names(by_day_bal_tree2) <- "overall"
+
+knitr::kable(
+  list(by_day_bal_tree2, by_day_bal_tree1),
+  caption = 'with cross-validation: decision tree',
+  booktabs = TRUE, valign = 't')
+```
+
+Table 4 - multinomial logistic regression
+
+```{r}
+by_day_bal_mlr1 <- as.data.frame(c6$byClass) %>% select(1,2,11)
+by_day_bal_mlr2 <- data.frame(cbind(Accuracy=c6$overall[1],
+                                     Kappa=c6$overall[2]))
+row.names(by_day_bal_mlr2) <- "overall"
+ 
+knitr::kable(
+  list(by_day_bal_mlr2, by_day_bal_mlr1),
+  caption = 'multinomial logistic regression',
+  booktabs = TRUE, valign = 't')
+```
+
+
+> **Weekdays and Weekend-Balanced data with Cross-Validation**
+
+According to the table5, the balanced accuracy and kappa is higher after we aggregate the days in a week into weekday and weekends. 
+We will finally choose logistic regression model for it has highest balanced accuracy and kappa.
+
+
+Table 5 - The socres of three models
+```{r}
+final_table <- data.frame(cbind(Sensitivity=c(c3$byClass[1],
+                                              c4$byClass[1],
+                                              c7$byClass[1]),
+                                Specifity=c(c3$byClass[2],
+                                              c4$byClass[2],
+                                              c7$byClass[2]),
+                                Accuracy=c(c3$overall[1],
+                                           c4$overall[1],
+                                           c7$overall[1]),
+                                Balanced_accuracy=c(c3$byClass[11],
+                                              c4$byClass[11],
+                                              c7$byClass[11]),
+                                Kappa=c(c3$overall[2],
+                                           c4$overall[2],
+                                           c7$overall[2])))
+row.names(final_table) <- c("decison tree","random forest","logistic regression")
+
+kable(final_table, caption = "The socres of three models(decison tree, random forest,logistic regression)") %>%
+  kable_styling(bootstrap_options = "bordered") %>%
+  kableExtra::scroll_box(width = "100%", height = "250px")
+```
+
