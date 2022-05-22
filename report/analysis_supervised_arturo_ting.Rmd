@@ -43,6 +43,10 @@ set.seed(12345) # for reproducibility
 index.tr <- createDataPartition(y = data_by_day$order_dow, p= 0.8,list = FALSE)
 df.tr <- data_by_day[index.tr,]
 df.te <- data_by_day[-index.tr,]
+
+kable(data_by_day[1:50,], caption = "Number of products purchased by department per order") %>%
+  kable_styling(bootstrap_options = "bordered") %>%
+  kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
 ### **Models**
