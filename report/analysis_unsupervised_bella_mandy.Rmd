@@ -115,6 +115,7 @@ department.df <- melt(department.comp, id=c("Id", "Clust"))
 We will analyze the clusters by using the box plot for each feature.
 
 Our observations: 
+
 1. Cluster 2 has very small canned goods, deli, meat.seafood and dry.goods.pasta, while Cluster 1 and Cluster 3 have relatively high amounts for these departments.
 2. Cluster 3 has higher snacks, beverages, daily eggs and breakfast than Cluster 1.
 3. Cluster 1 has the highest produce.
@@ -206,7 +207,7 @@ plot(silhouette(department_wide.tr.pam), border = NA, col = 1:2)
 In our data set, there are 134 aisles which are grouped into 21 departments.
 So far in our supervised learning approach, we focus on the number of purchase per department. In this section, we would like to combine supervised and unsupervised learning approaches as follows.
 
-1.  Grouping aisles by using PCA Our assumption is that grouping aisles by PCA might better reflect a purchase pattern of customer than when grouping by department.
+1.  Grouping aisles by using PCA: Our assumption is that grouping aisles by PCA might better reflect a purchase pattern of customer than when grouping by department.
 
 2.  Performing supervised learning approach from the first step
 
