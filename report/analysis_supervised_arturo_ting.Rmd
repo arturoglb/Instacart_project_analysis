@@ -135,7 +135,7 @@ prp(m2_tree_byday$finalModel,
 rpart.rules(m2_tree_byday$finalModel, cover = T)
 ```
 
-The left column (*.outcome*) of the rules show the day that was selected for the terminal node (*the one with the highest probability*) and next to it the probability of each day of the week for the department selected. In this case for the last rule it seems that Wednesday and Thursday have the same probability because of the rounding, but Thursday its **0.2%** above Wednesday, this can be seen from the tree plot.
+The left column (*.outcome*) of the rules show the day that was selected for the terminal node (*the one with the highest probability*) and next to it the probability of each day of the week for the department selected. In this case for the last rule it seems that Wednesday and Thursday have the same probability because of the rounding, but Thursday its **0.003** above Wednesday, this can be seen from the tree plot.
 
 The rightmost column (*cover*) gives the percentage of observations in each rule. The first rule says that Saturday will be chosen when the department **produce** is lower than 3 and higher or equal than 1 with a probability of **18%**. Then we can look at the results of the model in the Confusion Matrix.
 
@@ -151,7 +151,7 @@ From the confusion matrix we observe a better result between the sensitivity and
 
 > **Weekdays and Weekend - Balanced data with Sub-sampling and Cross-Validation**
 
-For the Final approach we transformed the levels of the column `order_dow` into two, one for the days during the week and the other for the weekend. On top of that we balanced our levels "weekday" and "weekend" and consider a Cross-Validation to train the model.
+For the Final approach we transformed the levels of the column `order_dow` into two, one for the days during the week and the remaining for the weekend. On top of that we balanced our levels "weekday" and "weekend" and consider a Cross-Validation to train the model.
 
 We try to plot the final tree computed by the model, but it was not possible to interpret it, due to the overlapping nodes shown in the graph, but we could see that the departments **produce, frozen** and **meat.seafood**, were among the first splits.
 
@@ -369,18 +369,6 @@ Before balancing the data, We need to check the frequency of each class. The cla
 table(df.tr$order_dow)
 ```
 
-
-We try the cross-validation with the sub-sampling data by using the train function of caret package, but the data set is too big and it takes a very long time to run it so we decide not to include the cross-validation.
-
-```{r echo=FALSE, message=FALSE}
-#insta_multiglm_new <- caret::train(order_dow2~.,data=train,
-#                                   method="multinom",
-#                                   trControl=trainControl(method = "cv",
-#                                                          number = 10,
-#                                                         sampling = "down"))
-```
-
-
 ```{r echo=FALSE, message=FALSE}
 n.3 <- min(table(df.tr$order_dow)) ## 12550
 
@@ -407,6 +395,17 @@ table(insta.tr.subs$order_dow)
 ```
 
 We only sub-sample the data without applying cross-validation. Now every class has the same frequency(**12550**).
+
+We try the cross-validation with the sub-sampling data by using the train function of caret package, but the data set is too big and it takes a very long time to run it so we decide not to include the cross-validation.
+
+```{r echo=FALSE, message=FALSE}
+#insta_multiglm_new <- caret::train(order_dow2~.,data=train,
+#                                   method="multinom",
+#                                   trControl=trainControl(method = "cv",
+#                                                          number = 10,
+#                                                         sampling = "down"))
+```
+
 
 ```{r echo=FALSE, message=FALSE, include=FALSE}
 insta.tr.subs$order_dow <- relevel(insta.tr.subs$order_dow,ref = "Sunday")
