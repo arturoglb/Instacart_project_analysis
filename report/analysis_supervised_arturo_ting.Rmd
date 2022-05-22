@@ -553,19 +553,19 @@ calculate_importance <- function(your_model_explainer, n_permutations = 10) {
 
 importance_tree  <- calculate_importance(explainer_tree)
 importance_tree[order(importance_tree[,"dropout_loss"]), ]
-importance_tree <- importance_tree %>% head(10)
+importance_tree <- importance_tree %>% head(11)
 
 importance_rf  <- calculate_importance(explainer_rf)
 importance_rf[order(importance_rf[,"dropout_loss"]), ]
-importance_rf <- importance_rf %>% head(10)
+importance_rf <- importance_rf %>% head(11)
 
 importance_ml  <- calculate_importance(explainer_ml)
 importance_ml[order(importance_ml[,"dropout_loss"]), ]
-importance_ml <- importance_ml %>% head(10)
+importance_ml <- importance_ml %>% head(11)
 
 importance_glm <- calculate_importance(explainer_glm)
 importance_glm[order(importance_glm[,"dropout_loss"]), ]
-importance_glm <- importance_glm %>% head(10)
+importance_glm <- importance_glm %>% head(11)
 ```
 
 ```{r echo=FALSE, message=FALSE, fig.height=8, fig.width=12}
