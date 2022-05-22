@@ -60,12 +60,10 @@ the competition website, and assume that:
 Thus, our research questions will be:
 
 -   What day of the week that a given order will be placed?\
-    For this question, we will use supervised methods - Classification
-    Tree and Multiple Logistic Regression.
+    For this question, we will use supervised methods.         
 
 -   Are there any common components between departments or aisles?\
-    For this question, we will use unsupervised methods - PCA and
-    Clustering.
+    For this question, we will use unsupervised methods.                  
 
 ### **Reference articles**
 
