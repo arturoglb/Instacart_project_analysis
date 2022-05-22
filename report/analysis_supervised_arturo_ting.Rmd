@@ -107,7 +107,8 @@ m1_tree_byday_pruned_pred <- predict(m1_tree_byday_pruned, newdata = df.te, type
 
 
 # Measure the accuracy of the prediction
-confusionMatrix(data=as.factor(m1_tree_byday_pruned_pred), reference = df.te$order_dow)
+c1 <- confusionMatrix(data=as.factor(m1_tree_byday_pruned_pred), reference = df.te$order_dow)
+c1
 ```
 
 As expected, only on Sunday and Monday we get predictive values for all the days of the week, while in the rest we get zero. Overall, the accuracy of this model is low with a score of **0.21**, meaning that the model have (`(0.21 - (1/7))= 0.077`) around **8%** of accuracy classifying the days of the week. It is important to recall that there is a big difference between sensitivity and specificity because our data is not balanced.
@@ -148,7 +149,8 @@ The rightmost column (*cover*) gives the percentage of observations in each rule
 m2_tree_byday_pred <- predict(m2_tree_byday, newdata=df.te)
 
 # Measure the accuracy of the prediction
-confusionMatrix(data=as.factor(m2_tree_byday_pred), reference = df.te$order_dow)
+c2 <- confusionMatrix(data=as.factor(m2_tree_byday_pred), reference = df.te$order_dow)
+c2
 ```
 
 From the confusion matrix we observe a better result between the sensitivity and specificity across the classes, if we compare the previous model with this one, we notice that on the class Sunday the values of the sensitivity changed from **0.882** to **0.545**, and for the specificity from **0.194** to **0.576**. As expected, the Accuracy has decreased from **0.211** to **0.195**, meaning that the model have (`(0.195 - (1/7))= 0.052`) around **5%** of accuracy per day of the week, but the Balanced Accuracy is better. This model would be preferred than the one used with unbalanced data.
@@ -245,8 +247,8 @@ draw_confusion_matrix1 <- function(cm) {
   text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
   text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
-cm<-confusionMatrix(m3_tree_group_pred, df.te2$Group)
-draw_confusion_matrix1(cm)
+c3<-confusionMatrix(m3_tree_group_pred, df.te2$Group)
+draw_confusion_matrix1(c3)
 
 ```
 
@@ -335,8 +337,8 @@ draw_confusion_matrix2 <- function(cm) {
   text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
   text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
-cm <-confusionMatrix(m4_rf_group_pred, df.te3$Group)
-draw_confusion_matrix2(cm)
+c4 <-confusionMatrix(m4_rf_group_pred, df.te3$Group)
+draw_confusion_matrix2(c4)
 ```
 
 As expected, the Accuracy of the model is higher than the Classification Tree as well as Cohen's Kappa and the balanced accuracy. This model would be preferred at predicting "weekday" and "weekend" as it has better results.
@@ -360,7 +362,8 @@ insta_multiglm <- multinom(order_dow~.,data=df.tr)
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 insta_pred <- predict(insta_multiglm,newdata = df.te)
-confusionMatrix(factor(insta_pred),df.te$order_dow)
+c5 <- confusionMatrix(factor(insta_pred),df.te$order_dow)
+c5
 ```
 
 
@@ -419,7 +422,8 @@ insta_multiglm_bal <- multinom(order_dow~.,data=insta.tr.subs)
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 insta_pred_sub <- predict(insta_multiglm_bal,newdata = df.te)
-confusionMatrix(factor(insta_pred_sub),df.te$order_dow)
+c6 <- confusionMatrix(factor(insta_pred_sub),df.te$order_dow)
+c6
 ```
 
 From the confusion matrix report we can notice that there is an improvement on the difference between sensitivity and specificity of each class. For example, the sensitivity and specificity of class Thursday are **0.007** and **0.995** in the previous model. After balancing the data, now the sensitivity and specificity of class Thursday are **0.231** and **0.801**. The kappa is also higher(from **0.01** to **0.03**) 
@@ -500,8 +504,8 @@ draw_confusion_matrix3 <- function(cm) {
   text(80, 35, names(cm$byClass[11]), cex=1.5, font=15)
   text(80, 15, round(as.numeric(cm$byClass[11]), 3), cex=1.4)
 }
-cm <-confusionMatrix(insta.glm_pred, df.te2$Group)
-draw_confusion_matrix3(cm)
+c7 <-confusionMatrix(insta.glm_pred, df.te2$Group)
+draw_confusion_matrix3(c7)
 ```
 
 According to the confusion matrix the balanced accuracy is higher and the difference between sensitivity(**0.62**) and specificity(**0.48**) is even smaller. Now the Kappa is **0.10**, higher than Cohen's Kappa previous model(**0.03**), and the Accuracy is **0.57**. 
