@@ -2,17 +2,18 @@
 editor_options: 
   markdown: 
     wrap: 72
+  chunk_output_type: inline
 ---
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 source(here::here("scripts/setup.R"))
 ```
 
-# **Unsupervised learning**
+## **Unsupervised learning**
 
 In this section, we will work with unsupervised learning methods i.e.
 Clustering and PCA to learn how we can reduce the dimensionality of the original data set and how to group data by similarity/or dissimilarity of all the features. Then, we will also study further by using a hybrid supervised/unsupervised learning method to perform the prediction (supervised) by using the result from the PCA analysis (unsupervised).
 
-## **Clustering**
+### **Clustering**
 
 In this section, we will study clustering approaches, Hierarchical clustering and Partitioning methods, to find groups of instances/observations that have similar features.
 
@@ -30,9 +31,9 @@ row.names(department_wide.tr) <- paste("O", c(1:nrow(department_wide.tr)),
 department_wide.tr <- department_wide.tr[,-(1:3)]
 ```
 
-### **Hierarchical clustering**
+#### **Hierarchical clustering**
 
-#### Distance
+> **Distance**
 
 First, we apply an Agglomerative nesting (AGNES) and compute the distances using Euclidean distances because all our features are numerical.
 
@@ -45,7 +46,7 @@ kable(department.melt[1:50,], caption = "Example of the Euclidean distance betwe
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
 
-#### Dendrogram
+> **Dendrogram**
 
 We then apply the dendrogram using the complete linkage to visualized the output of the hierarchical clustering. Since it's difficult to read the original dendrogram, we will selected the optimal number of clusters and cut the tree branches in the next steps.
 
@@ -54,11 +55,9 @@ department.hc <- hclust(department.d, method = "complete")
 plot(department.hc, hang=-1)
 ```
 
-#### Choice of the number of clusters
+> **Choice of the number of clusters**
 
 We will choose the optimal number of clusters from statistics. We will apply the within-cluster sum of squares, the GAP statistics and the silhouette using complete linkage on Euclidean distance.
-
-
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=8, fig.width=10}
 p1 <- fviz_nbclust(department_wide.tr,
@@ -103,36 +102,34 @@ department.comp <- data.frame(department_wide.tr,
 department.df <- melt(department.comp, id=c("Id", "Clust"))
 ```
 
-#### Interpretation of the clusters
+> **Interpretation of the clusters**
 
 We will analyze the clusters by using the box plot for each feature.
 
 Our observations are as follows: 
 
-* 1. Cluster 2 has very small canned goods, deli, meat.seafood and dry.goods.pasta, while Cluster 1 and Cluster 3 have relatively high amounts for these departments.
-* 2. Cluster 3 has higher snacks, beverages, daily eggs and breakfast than Cluster 1.
-* 3. Cluster 1 has the highest produce.
+* Cluster 2 has very small canned goods, deli, meat.seafood and dry.goods.pasta, while Cluster 1 and Cluster 3 have relatively high amounts for these departments.
+* Cluster 3 has higher snacks, beverages, daily eggs and breakfast than Cluster 1.
+* Cluster 1 has the highest produce.
 
 ```{r, fig.height=20, fig.width=20, echo = FALSE, message = FALSE, warning=FALSE}
 ggplot(department.df, aes(y=value, group=Clust, fill=Clust)) +
   geom_boxplot() +
   facet_wrap(~variable, scale='free')+
-  theme(legend.text=element_text(size=rel(1)),
-        strip.text=element_text(size=8),
-        axis.text =element_text(size=8))
+  theme(legend.text=element_text(size=rel(4)),
+        strip.text=element_text(size=17),
+        axis.text =element_text(size=17))
 ```
 
-### **Partitioning methods**
+#### **Partitioning methods**
 
 In this section, we will apply partitioning methods, K-means and Partitioning Around the Medoid (PAM). For the partitioning methods, we first need to identify the number of clusters and then use the chosen number of clusters to perform the analysis.
 
-#### K-means
+> **K-means**
 
 We will use WSS, silhouette and the Gap statistic to determine the number of clusters used for K-means. It's important to note that K-means is suitable for numerical features only. Since all our features are numerical, it's appropriate to perform the K-means analysis.
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=8, fig.width=10}
-library(factoextra)
-
 p4 <- fviz_nbclust(department_wide.tr,
              kmeans,
              method = "wss", 
@@ -148,18 +145,19 @@ p6 <- fviz_nbclust(department_wide.tr,
              method = "gap", 
              k.max = 25, verbose = FALSE)
 p4 / p5 / p6
-
 ```
 
 * **The Within-Cluster Sum of Squares:**  It seems there is an elbow at the cluster number 2, for that reason we choose the optimal k = 2.
 * **Silhouette:** From this approach, k = 2 (the highest number) is the optimal number of clusters.
 * **Gap Statistic:** From this graph, it's not conclusive. The function chose 13 as an optimal number but 15 and 22, which are local maximum, might be also used here.
 
-Next, we will show a scatter plot along the first and second principal components and group by 2 clusters using K-means. We will see that PC1 can distinguish the clusters quite well. Cluster 1 has higher PC1 than Cluster 2.
+Therefore, the number 2 is an optimal number of clusters. Afterward, we plot the box plot to distinguish the characteristic of those 2 clusters. We observe that cluster 2 has higher average numbers of purchases than cluster 1 in every department that the median of numbers of purchases are higher than zero such as canned.good, dairy.eggs, produce, beverages, deli, frozen, pantry, snacks, bakery, meat.seafood and dry.goods.pasta.
 
-Regarding the principal components, the percentages of variance of PC1 and PC2 are 47% and 14% respectively, which are close to what we observed from PCA analysis in the EDA section however, please note that the numbers are not the same because we chose only 1% of the features from the original data set for this clustering exercise due to the computer capacity limitation.
+>>>>>>>>>>>This means that cluster 2 in K-mean has similar characteristics as
+cluster 1 and 3 from the Hierarchical clustering. 
 
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
+```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=20, fig.width=20}
+set.seed(12345)
 department.kmeans <- kmeans(department_wide.tr, 2)
 
 department.kmeans_temp <- data.frame(department_wide.tr, 
@@ -171,19 +169,25 @@ department.km <- melt(department.kmeans_temp, id=c("Id", "Clust"))
 ggplot(department.km, aes(y=value, group=Clust, fill=Clust)) +
   geom_boxplot() +
   facet_wrap(~variable, scale='free')+
-  theme(legend.text=element_text(size=rel(1)),
-        strip.text=element_text(size=8),
-        axis.text =element_text(size=8))
+  theme(legend.text=element_text(size=rel(4)),
+        strip.text=element_text(size=17),
+        axis.text =element_text(size=17))
+```
 
+Next, we will show a scatter plot along the first and second principal components and group by 2 clusters using K-means. We will see that PC1 can distinguish the clusters quite well. Cluster 1 has higher PC1 than Cluster 2.
+
+Regarding the principal components, the percentages of variance of PC1 and PC2 are 47% and 14% respectively, which are close to what we observed from PCA analysis in the EDA section however, please note that the numbers are not the same because we chose only 1% of the features from the original data set for this clustering exercise due to the computer capacity limitation.
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
 autoplot(kmeans(department_wide.tr, 2),data=department_wide.tr,label=T, label.size=2, frame=TRUE)
 ```
 
-#### Partitioning Around the Medoid (PAM)
+> **Partitioning Around the Medoid (PAM)**
 
 Similar to K-means, we will need to find an optimal number of clusters before performing the analysis. We will Silhouette to determine the optimal k. 
 
 From the graph below, we find that the optimal number of clusters is 2.
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
+```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=4, fig.width=6}
 fviz_nbclust(department_wide.tr,
              cluster::pam,
              method = "silhouette", 
@@ -193,7 +197,8 @@ fviz_nbclust(department_wide.tr,
 Then, we will plot silhouette to show the silhouettes of all the instances and the average silhouette.
 
 From the graph, we see that cluster 2 is well formed (well separated from Cluster 1, with the average silhouette of 0.46). Cluster 1 is less homogeneous with an average silhouette of 0.16 only. The average silhouette of the data set is 0.4.
-```{r, echo = FALSE, message = FALSE, warning=FALSE}
+```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=20, fig.width=20}
+set.seed(12345)
 department_wide.tr.pam <- pam(department_wide.tr, k=2)
 #plot(department_wide.tr.pam)
 
@@ -209,11 +214,13 @@ ggplot(department.pam, aes(y=value, group=Clust, fill=Clust)) +
   theme(legend.text=element_text(size=rel(1)),
         strip.text=element_text(size=8),
         axis.text =element_text(size=8))
+```
 
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
 plot(silhouette(department_wide.tr.pam), border = NA, col = 1:2)
 ```
 
-## **PCA and hybrid supervised and unsupervised learning approach**
+### **PCA and hybrid supervised and unsupervised learning approach**
 
 In our data set, there are 134 aisles which are grouped into 21 departments.
 So far in our supervised learning approach, we focus on the number of purchase per department. In this section, we would like to combine supervised and unsupervised learning approaches as follows.
@@ -222,16 +229,20 @@ So far in our supervised learning approach, we focus on the number of purchase p
 
 2.  Performing supervised learning approach from the first step
 
-### **PCA by aisle**
+#### **PCA by aisle**
 
-**Non-scaled PCA (Covariance)** We observe that the first and second components explain 23.98% and 9.02% of variance of the data. Referring to the rule of thumb which selects the number of dimensions that allow to explain at least 75% of the variation, therefore comp1 - comp28 are selected and around 75.5% of variance of the data are explained.
+> **Non-scaled PCA (Covariance)** 
 
-```{r, fig.height=6, fig.width=10, echo = FALSE, message = FALSE, warning=FALSE}
+We observe that the first and second components explain 23.98% and 9.02% of variance of the data. Referring to the rule of thumb which selects the number of dimensions that allow to explain at least 75% of the variation, therefore comp1 - comp28 are selected and around 75.5% of variance of the data are explained.
+
+```{r, figures-side, out.width="70%", fig.height=6, fig.width=10, echo = FALSE, message = FALSE, warning=FALSE}
 aisle_wide_pca <- aisle_wide[,-(1:3)]
 
 pca_aisle <- PCA(aisle_wide_pca, scale.unit = FALSE, ncp = 30)
 pca_aisle_eig <- as.data.frame(pca_aisle$eig)
+```
 
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
 kable(pca_aisle_eig[1:28,], caption = "Variance contribution from non-scaled PCA") %>%
   kable_styling(bootstrap_options = "bordered") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
@@ -241,7 +252,10 @@ kable(pca_aisle_eig[1:28,], caption = "Variance contribution from non-scaled PCA
 orders_pca <- pca_aisle$ind$coord[,1:28]
 ```
 
-**Scaled PCA (Correlation)** We find that the first and second components can explain only 3.2% and 1.8% respectively, and we need 93 components (out of 134) to explain 75% of the variation. This means that correlations between aisles are very low and we cannot use PCA to reduce the dimensions of the scaled data.
+
+> **Scaled PCA (Correlation)** 
+
+We find that the first and second components can explain only 3.2% and 1.8% respectively, and we need 93 components (out of 134) to explain 75% of the variation. This means that correlations between aisles are very low and we cannot use PCA to reduce the dimensions of the scaled data.
 
 ```{r, fig.height=6, fig.width=10, echo = FALSE, message = FALSE, warning=FALSE}
 pca_aisle_scale <- PCA(aisle_wide_pca, scale.unit = TRUE)
@@ -257,7 +271,7 @@ All in all, we can see that scaled PCA cannot reduce dimensions of the data set.
 Although the disadvantage of the non-scaled PCA is that it tends to include information from variables that have high variance and high correlation to the others and the model tends to neglect variables that have low variance and low correlation, we can derive the benefit of PCA, which is to reduce the dimension.
 Also, our objective in our research is to support demand forecasting such as inventory arrangement. The high variation departments and aisles tend to more important to this purpose. Thus, we focus on non-scaled PCA.
 
-### **A hybrid supervised and unsupervised learning approach**
+#### **A hybrid supervised and unsupervised learning approach**
 
 In this section, we will apply a supervised learning approach with the output from the PCA (non-scale) analysis. From the PCA analysis, we select the first 28 principal components, which can explain over 75% of the total variation. For the supervised learning approach that will be performed in this section, we will use the logistic regression which is the best model from the supervised learning section.
 
@@ -265,38 +279,36 @@ In this section, we will apply a supervised learning approach with the output fr
 orders_pca_df <- as.data.frame(orders_pca) %>% cbind(department_wide$order_dow)
 colnames(orders_pca_df)[29] <- "order_dow"
 
-set.seed(12345)
-insta.pca.index <- sample(x=1:nrow(orders_pca_df), size=0.8*nrow(orders_pca_df), replace=FALSE)
-
 pca_WW <- orders_pca_df %>% 
   mutate(order_ww=ifelse(order_dow %in% c(0,6) , "weekend", "weekday"))
 pca_WW$order_dow <- as.factor(pca_WW$order_ww)
-pca.tr <- pca_WW[insta.pca.index,]
-pca.te <- pca_WW[-insta.pca.index,]
 
-pca.train.SS <- pca.tr %>% select(-c('order_dow'))
-insta_glm.pca <- caret::train(order_ww~.,data = pca.train.SS,
-                                   method="glm",
-                                   trControl=trainControl(method = "cv",
-                                                          number = 10,
-                                                          summaryFunction = twoClassSummary, classProbs = TRUE, savePredictions = T,
-                                                          sampling = "down"))
-test_SS.pca <- pca.te %>% select(-c('order_dow'))
+set.seed(12345)
+index.tr.pca <- createDataPartition(y = pca_WW$order_dow, p= 0.8,list = FALSE)
+df.tr.pca <- pca_WW[index.tr.pca,]
+df.te.pca <- pca_WW[-index.tr.pca,]
+
+pca.train.SS <- df.tr.pca %>% select(-c('order_dow'))
+
+insta_glm.pca <- caret::train(order_ww~.,
+                              data = pca.train.SS,
+                              method="glm",
+                              trControl=trainControl(method = "cv",
+                                                     number = 10,
+                                                     summaryFunction =
+                                                       twoClassSummary,
+                                                     classProbs = TRUE,
+                                                     savePredictions = T,
+                                                     sampling = "down"))
+
+test_SS.pca <- df.te.pca %>% select(-c('order_dow'))
 pca.glm_pred <- predict(insta_glm.pca,newdata = test_SS.pca)
 ```
 
 ```{r, echo = FALSE}
-confusionMatrix(factor(pca.glm_pred),factor(pca.te$order_ww))
+confusionMatrix(factor(pca.glm_pred),factor(df.te.pca$order_ww))
 ```
-According to the result from the original data set (without PCA) in the supervised learning section, sensitivity, specificity and kappa are **0.622**, **0.472** and **0.091**.
 
-From the confusion matrix of the hybrid approach, we find that the sensitivity and kappa are higher than the original model (**0.629** and **0.096**), while specificity is marginally lower (**0.470**). Thus, we conclude that we can improve the model using the hybrid supervised/unsupervised approach.
+According to the result from the original data set (without PCA) in the supervised learning section, sensitivity, specificity, kappa and accuracy are **0.628**, **0.479**, **0.103** and **0.57** respectively.
 
-
-
-
-
-
-
-
-
+From the confusion matrix of the hybrid approach, we find that the sensitivity (**0.628**) and the accuracy (**0.57**) are equivalent to the result from logistic regression. However, the specificity (**0.463**) and kappa (**0.088**) are slightly lower than the result of logistic regression. Thus, we conclude that this method doesn't improve the quality of the model.

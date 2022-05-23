@@ -232,6 +232,10 @@ fig
 **The number of purchase by department**
 
 This table shows the top 10 departments by the number of purchase. We can see that the most purchase aisles is produce (~409k orders).
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>mention about less purchases here so do not need to mention in clustering section
+
+
 ```{r echo=FALSE, message=FALSE}
 num_department_product <- user_purchases %>% 
   group_by(department) %>%
@@ -331,8 +335,7 @@ kable(pca_department_eig[1:10,], caption = "Variance contribution from non-scale
 
 We find that the first and second components can explain only 13.6% and 6.6% respectively, and we need 15 components (out of 21) to explain 75% of the variation. This means that correlations between departments are very low and we cannot use PCA to reduce the dimensions of the scaled data.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-
+```{r echo=FALSE, message=FALSE, warning=FALSE, out.width="70%"}
 pca_department <- PCA(data_pca_department[,-1], scale.unit = TRUE)
 #pca_department
 
