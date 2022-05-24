@@ -254,6 +254,10 @@ homogeneous with an average silhouette of 0.16 only. The average
 silhouette of the data set is 0.4.
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
+set.seed(12345)
+department_wide.tr.pam <- pam(department_wide.tr, k=2)
+#plot(department_wide.tr.pam)
+
 plot(silhouette(department_wide.tr.pam), border = NA, col = 1:2)
 ```
 
@@ -264,10 +268,6 @@ characteristics between 2 clusters from PAM are very similar to the
 clusters from K-means.
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE, fig.height=20, fig.width=20}
-set.seed(12345)
-department_wide.tr.pam <- pam(department_wide.tr, k=2)
-#plot(department_wide.tr.pam)
-
 department.pam_temp <- data.frame(department_wide.tr, 
                               Clust=factor(department_wide.tr.pam$cluster),
                               Id=row.names(department_wide.tr))
