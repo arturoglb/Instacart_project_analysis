@@ -15,7 +15,7 @@ source(here::here("scripts/setup.R"))
 Our inspiration was from Kaggle competition - [Instacart Market Basket
 Analysis](https://www.kaggle.com/competitions/instacart-market-basket-analysis/overview)
 which is also the data sets' resource. Instacart is a grocery ordering
-and delivery application. They provide an anonymized dataset contains a
+and delivery application. They provide an anonymized dataset that contains a
 sample of over 3 million grocery orders from more than 200,000
 Instacart's users, and for each user, they provide between 4 and 100 of
 their orders, with the sequence of products purchased in each order, the
@@ -61,7 +61,7 @@ the competition website, and assume that:
 
 Thus, our research questions will be:
 
--   What day of the week that a given order will be placed?\
+-   What day of the week a given order will be placed?\
     For this question, we will use supervised methods.         
 
 -   Are there any common components between departments or aisles?\

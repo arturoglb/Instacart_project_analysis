@@ -164,16 +164,19 @@ aisle_wide[is.na(aisle_wide)] <- 0
 
 The plot shows the distribution of the order by time (dow and hour).
 
-```{r, fig.height=6, fig.width=8}
-orders %>%
-  select(-order_id) %>%
-  inspect_num() %>%
-  show_plot(col_palette = 3)
-
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 kable(orders[1:50,], caption = "The purchase time per order table") %>%
   kable_styling(bootstrap_options = "bordered") %>%
   kableExtra::scroll_box(width = "100%", height = "250px")
 ```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height=5, fig.width=8}
+orders %>%
+  select(-order_id) %>%
+  inspect_num() %>%
+  show_plot(col_palette = 3)
+```
+
 
 We can observe on the left chart `oder_dow` that the most frequent days
 of ordering are Sunday's and Monday's comparing to the rest of the week,

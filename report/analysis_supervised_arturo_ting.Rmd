@@ -75,7 +75,7 @@ Decision trees are algorithms that recursively search the space for the best bou
 For this approach we want to measure the accuracy of the model with the unbalanced data. Furthermore, it will be interesting to see which departments were considered the best to split the data into days of the week to later be compared to a balanced data with cross-validation (second approach). 
 
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.height=6, fig.width=8}
 # Classification tree fit and plot
 m1_tree_byday <- rpart(order_dow ~ ., method= "class", 
                      data=df.tr, cp= 0.0001, model=TRUE)
@@ -117,7 +117,7 @@ As expected, only on Sunday and Monday we get predictive values for all the days
 
 Now for this approach, we will balanced the data with sub-sampling and make the overall score more robust by applying to the model a cross-validation technique, this will help us to find the best set of hyperparameters.
 
-```{r echo=FALSE, message=FALSE}
+```{r echo=FALSE, message=FALSE, fig.height=6, fig.width=8}
 
 # Building a Classification tree model: Considering a Repeated Cross-Validation with a Class balancing of Sub-sampling
 m2_tree_byday <- caret::train(order_dow ~ .,
@@ -576,7 +576,7 @@ importance_glm[order(importance_glm[,"dropout_loss"]), ]
 importance_glm <- importance_glm %>% head(11)
 ```
 
-```{r echo=FALSE, message=FALSE, fig.height=8, fig.width=12}
+```{r echo=FALSE, message=FALSE, fig.height=6, fig.width=12}
 # Plot the variable importance for the models
 
 p1 <- plot(importance_tree) 
