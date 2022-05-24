@@ -385,8 +385,6 @@ pca.glm_pred <- predict(insta_glm.pca,newdata = test_SS.pca)
 ```
 
 ```{r, echo = FALSE, warning=FALSE}
-confusionMatrix(factor(pca.glm_pred),factor(df.te.pca$order_ww))
-
 # Measure the accuracy of the prediction
 draw_confusion_matrix4 <- function(cm) {
   
